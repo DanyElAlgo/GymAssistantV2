@@ -75,7 +75,7 @@ One tracked body point (a hip, knee, ankle, shoulder…) within a pose.
 _Avoid_: keypoint, joint (when meaning the tracked point)
 
 **Camera position** (Posición de cámara):
-Where the phone stands relative to the user and the machine: **side** (lateral), **oblique** (diagonal, about 30° from the side) or **front**. Each exercise has a recommended camera position.
+Where the phone stands relative to the user and the machine: **side** (0°, perpendicular to the user's side), **oblique** (diagonal, 30° from the side) or **front**. Each exercise has a recommended camera position: oblique for the leg press, side for the lat pulldown and the leg extension.
 _Avoid_: camera angle (collides with joint angles)
 
 **Primary angle** (Ángulo principal):
