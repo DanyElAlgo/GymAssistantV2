@@ -74,6 +74,16 @@ The 33 body landmarks estimated from a single camera frame.
 One tracked body point (a hip, knee, ankle, shoulder…) within a pose.
 _Avoid_: keypoint, joint (when meaning the tracked point)
 
+**Camera position** (Posición de cámara):
+Where the phone stands relative to the user and the machine: **side** (lateral), **oblique** (diagonal, about 30° from the side) or **front**. Each exercise has a recommended camera position.
+_Avoid_: camera angle (collides with joint angles)
+
+**Primary angle** (Ángulo principal):
+The joint angle that drives an exercise's phases: the knee for the leg press and the leg extension, the elbow for the lat pulldown.
+
+**Measured side** (Lado medido):
+The body side, left or right, whose landmarks an exercise is analysed on. It is chosen when framing becomes valid and stays fixed for the set.
+
 **Framing** (Encuadre):
 Whether every landmark an exercise needs is visible to the camera. A set can only start after framing has been valid for a short continuous period.
 
@@ -83,6 +93,10 @@ A detectable error for one exercise, defined by a threshold, a persistence and a
 **Detected error** (Error detectado):
 An occurrence of a posture rule during a specific repetition.
 _Avoid_: mistake, fault, violation
+
+**Torso swing** (Inclinación o balanceo del tronco):
+The lat-pulldown error in which the user leans the trunk back to help pull the bar down. It covers both a static lean past about 30° and a change of trunk angle beyond a threshold during the repetition; calibration tunes both limits.
+_Avoid_: tilting
 
 **Threshold** (Umbral):
 The angle, distance or speed limit at which a posture rule or a phase change fires.
@@ -97,10 +111,17 @@ The margin an angle must cross beyond a threshold before the phase changes, so j
 The rank that decides which alert to show when several errors are detected at once; 1 is the highest.
 
 **Rules version** (Versión de reglas):
-The identifier of the set of calibrated thresholds a workout session was measured with.
+The identifier of the set of thresholds a workout session was measured with. Versions 0.x are **provisional** (uncalibrated values for development); 1.0.0 is the first calibrated version.
 
 **Calibration** (Calibración):
 Fitting thresholds to labelled recordings from the gym so each posture rule reaches its target accuracy.
+
+**Landmark recording** (Grabación de puntos):
+A file with one row per frame for one set: timestamp, the raw landmarks, the primary angle and the context needed to interpret them. It never contains images.
+_Avoid_: video, capture, log
+
+**Reference phone** (Teléfono de referencia):
+A researcher-owned phone on which calibration recordings, pilot measurements and performance targets are taken, so differences between participants' phones don't affect results.
 
 ## Feedback
 
