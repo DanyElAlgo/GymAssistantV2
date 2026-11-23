@@ -34,9 +34,19 @@ IDs are stable across all documents, so grep for them: RF-xx functional requirem
 
 If the code and the spec disagree, or the spec is silent or contradicts itself, ask before choosing: the documents are graded deliverables, and the author keeps them in sync with the code.
 
-## Vocabulary and decisions
+## Agent skills
 
-`GLOSSARY.md` gives the English code name for each domain concept the docs name in Spanish; use those names in code, tests and tickets. `docs/adr/` records the architectural decisions; read the ones that touch an area before changing it.
+### Issue tracker
+
+Jira project SCRUM via the Atlassian MCP: HU-xx stories, specs as tasks, tickets as sub-tasks under their story. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five default role labels, used as Jira labels. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` (each Spanish doc term → its English code name) and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
 
 ## Conventions
 
