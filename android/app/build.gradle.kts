@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.gymassistantv2"
+    namespace = "io.github.danyelalgo.gymassistant"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -15,23 +15,33 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.gymassistantv2"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        applicationId = "io.github.danyelalgo.gymassistant"
+        // Android 13 (RNF-15).
+        minSdk = 33
         targetSdk = flutter.targetSdkVersion
-        // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
-        // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
-        // You can force using the value of versionCode by specifying the `-P force-version-code-ignoring-abi=true`
-        // flag during build.
+        // Version code and name come from pubspec.yaml.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
+    // Two builds that install side by side on the same phone (ADR-0013):
+    // `play` is the public release; `research` adds landmark recording and the debug panel,
+    // and overrides the launcher label in src/research/res.
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("play") {
+            dimension = "distribution"
+        }
+        create("research") {
+            dimension = "distribution"
+            applicationIdSuffix = ".research"
+            versionNameSuffix = "-research"
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
+            // TODO: Add a release signing config before publishing to Google Play.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
         }
@@ -42,6 +52,10 @@ kotlin {
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
+}
+
+dependencies {
+    implementation(project(":analysis-core"))
 }
 
 flutter {

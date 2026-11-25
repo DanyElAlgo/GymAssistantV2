@@ -1,17 +1,27 @@
-# gymassistantv2
+# GymAssistant
 
-A new Flutter project.
+Android app (Flutter UI plus a native Kotlin analysis module) that watches a user on one of three gym machines through the phone camera, counts repetitions, raises live alerts for posture errors and tracks progress over weeks. Minimum supported version: Android 13.
 
-## Getting Started
+## Builds
 
-This project is a starting point for a Flutter application.
+Two Android flavors install side by side on the same phone (ADR-0013):
 
-A few resources to get you started if this is your first Flutter project:
+| Flavor | Application ID | Purpose |
+| --- | --- | --- |
+| `play` (default) | `io.github.danyelalgo.gymassistant` | Public release |
+| `research` | `io.github.danyelalgo.gymassistant.research` | Reference phones: landmark recording and debug panel |
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```sh
+flutter run                      # play
+flutter run --flavor research
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Tests
+
+```sh
+flutter analyze
+flutter test
+cd android && ./gradlew :analysis-core:test   # JUnit, JDK 17
+```
+
+`android/analysis-core` is a pure Kotlin/JVM module with the analysis domain (ADR-0010), so its tests run on the desktop without a phone. GitHub Actions runs all three on every pull request and every push to `main`.
