@@ -1,0 +1,12 @@
+{
+  "@@locale": "en",
+  "appTitle": "GymAssistant",
+  "tabTrain": "Train",
+  "tabProgress": "Progress",
+  "tabGoals": "Goals",
+  "tabProfile": "Profile",
+  "chooseExerciseTitle": "Choose an exercise",
+  "exerciseLegPress45": "45° leg press",
+  "exerciseLatPulldown": "Lat pulldown",
+  "exerciseLegExtension": "Leg extension"
+}

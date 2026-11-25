@@ -11,6 +11,12 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flutter_riverpod: ^3.5.0
+  flutter_svg: ^2.5.1
+  go_router: ^18.1.4
+  intl: any
 
 dev_dependencies:
   flutter_test:
@@ -19,5 +25,10 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  # Generates AppLocalizations from the ARB files in lib/l10n (see l10n.yaml).
+  generate: true
+  assets:
+    # Neutral machine illustrations for P06; placeholders until the final ones.
+    - assets/exercises/
   # Android product flavor used when no --flavor is given (ADR-0013).
   default-flavor: play

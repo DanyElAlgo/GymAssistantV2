@@ -1,0 +1,6 @@
+# Localized texts (RNF-14). Spanish is the template and the default language.
+arb-dir: lib/l10n
+template-arb-file: app_es.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160" fill="none" stroke="#000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Placeholder: 45° leg press, machine only (no person). -->
+  <path d="M10 150 H230"/>
+  <rect x="20" y="130" width="200" height="12" rx="3"/>
+  <path d="M95 130 L195 30"/>
+  <path d="M115 130 L215 30"/>
+  <path d="M132 64 L170 26 L180 36 L142 74 Z"/>
+  <path d="M150 74 L176 48 L196 68 L170 94 Z"/>
+  <circle cx="190" cy="82" r="10"/>
+  <path d="M28 128 H82 V118 H28 Z"/>
+  <path d="M28 118 L40 116 L24 70 L12 74 Z"/>
+  <path d="M55 128 V130"/>
+</svg>
