@@ -36,6 +36,38 @@
   "@exerciseLegExtension": {
     "description": "Name of the LEG_EXTENSION exercise."
   },
+  "cameraGuideTitle": "Coloca el teléfono",
+  "@cameraGuideTitle": {
+    "description": "Heading of the camera guide (P07)."
+  },
+  "cameraGuideSide": "De lado, a 0°: el teléfono mira de frente a tu costado, sin diagonal.",
+  "@cameraGuideSide": {
+    "description": "P07, camera position for the lat pulldown and the leg extension: side-on, 0° (HU-09)."
+  },
+  "cameraGuideOblique": "En diagonal, a 30° del lateral: entre tu costado y tu frente.",
+  "@cameraGuideOblique": {
+    "description": "P07, camera position for the leg press: oblique, 30° from the side (HU-09)."
+  },
+  "cameraGuideDistance": "A unos 2 m de ti, para que se vea todo tu cuerpo.",
+  "@cameraGuideDistance": {
+    "description": "P07, suggested distance between the phone and the user (RF-10)."
+  },
+  "cameraGuideChestHeight": "A la altura de tu pecho.",
+  "@cameraGuideChestHeight": {
+    "description": "P07, phone height for the lat pulldown (Marco Teórico §1.5)."
+  },
+  "cameraGuideUpright": "En vertical, con la pantalla hacia ti.",
+  "@cameraGuideUpright": {
+    "description": "P07, the phone stands in portrait with the front camera towards the user (ADR-0011)."
+  },
+  "cameraGuideDontShowAgain": "No volver a mostrar",
+  "@cameraGuideDontShowAgain": {
+    "description": "P07 checkbox; once ticked, P06 goes straight to P08 for that exercise."
+  },
+  "cameraGuideReady": "Listo, abrir cámara",
+  "@cameraGuideReady": {
+    "description": "P07 button that opens the framing check (P08)."
+  },
   "cameraPermissionExplanation": "GymAssistant usa la cámara frontal para ver tus articulaciones mientras entrenas. Las imágenes se analizan en el teléfono y nunca se guardan ni se envían.",
   "@cameraPermissionExplanation": {
     "description": "P08, shown before the system asks for the camera permission. Must keep the promise that images never leave the phone (RNF-07)."

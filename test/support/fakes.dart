@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:gymassistant/analysis/analysis_bridge.dart';
 import 'package:gymassistant/analysis/analysis_event.dart';
 import 'package:gymassistant/analysis/camera_permission.dart';
+import 'package:gymassistant/preferences/preferences_service.dart';
 import 'package:gymassistant/training/exercise.dart';
 
 /// An [AnalysisBridge] without native code: it records the commands it gets and emits the
@@ -96,4 +97,22 @@ class FakeCameraPermission implements CameraPermission {
 
   @override
   Future<void> openSettings() async => settingsOpened++;
+}
+
+/// A [PreferencesService] kept in memory. Share one between two `pumpApp` calls to reopen the
+/// app on the same phone.
+class FakePreferencesService implements PreferencesService {
+  final skippedGuides = <Exercise>{};
+
+  @override
+  Future<bool> cameraGuideSkipped(Exercise exercise) async => skippedGuides.contains(exercise);
+
+  @override
+  Future<void> setCameraGuideSkipped(Exercise exercise, {required bool skipped}) async {
+    if (skipped) {
+      skippedGuides.add(exercise);
+    } else {
+      skippedGuides.remove(exercise);
+    }
+  }
 }

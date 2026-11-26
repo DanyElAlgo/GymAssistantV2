@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../l10n/app_localizations.dart';
+import '../preferences/preferences_service.dart';
 import '../routing/app_router.dart';
 import 'exercise.dart';
 import 'exercise_presentation.dart';
@@ -26,20 +28,26 @@ class ChooseExerciseScreen extends StatelessWidget {
   }
 }
 
-class _ExerciseOption extends StatelessWidget {
+class _ExerciseOption extends ConsumerWidget {
   const _ExerciseOption({required this.exercise});
 
   final Exercise exercise;
 
+  /// P07 first, unless the user asked not to see it again for this exercise (Diseño §10.1).
+  Future<void> _open(BuildContext context, WidgetRef ref) async {
+    final skipGuide = await ref.read(preferencesServiceProvider).cameraGuideSkipped(exercise);
+    if (!context.mounted) return;
+    context.go(skipGuide ? AppRoutes.framing(exercise) : AppRoutes.cameraGuide(exercise));
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     return Card(
       clipBehavior: Clip.antiAlias,
       margin: const EdgeInsets.only(bottom: 16),
       child: InkWell(
-        // Until the camera guide (P07, SCRUM-48) exists, go straight to P08.
-        onTap: () => context.go(AppRoutes.framing(exercise)),
+        onTap: () => _open(context, ref),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(

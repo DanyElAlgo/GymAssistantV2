@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../analysis/analysis_bridge.dart';
@@ -9,6 +8,7 @@ import '../l10n/app_localizations.dart';
 import '../research/research_build.dart';
 import 'exercise.dart';
 import 'exercise_presentation.dart';
+import 'portrait_lock.dart';
 
 /// P08, Verificar encuadre: the user sees themself in the front camera, as in a mirror, with
 /// the skeleton on top (HU-08). The framing check and its button arrive with SCRUM-50.
@@ -39,14 +39,12 @@ class _FramingScreenState extends ConsumerState<FramingScreen> with WidgetsBindi
     _bridge = ref.read(analysisBridgeProvider);
     _permission = ref.read(cameraPermissionProvider);
     WidgetsBinding.instance.addObserver(this);
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     _checkPermission();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    SystemChrome.setPreferredOrientations([]);
     if (_cameraStarted) _bridge.releaseCamera();
     super.dispose();
   }
@@ -96,37 +94,39 @@ class _FramingScreenState extends ConsumerState<FramingScreen> with WidgetsBindi
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.exercise.localizedName(l10n))),
-      body: switch (_stage) {
-        _Stage.checkingPermission => const SizedBox.shrink(),
-        _Stage.explainingPermission => _Notice(
-            icon: Icons.videocam_outlined,
-            text: l10n.cameraPermissionExplanation,
-            action: l10n.cameraPermissionAllow,
-            onAction: _requestPermission,
-          ),
-        _Stage.permissionDenied => _Notice(
-            icon: Icons.videocam_off_outlined,
-            text: l10n.cameraPermissionDenied,
-            action: l10n.cameraPermissionOpenSettings,
-            onAction: _permission.openSettings,
-          ),
-        _Stage.cameraUnavailable => _Notice(
-            icon: Icons.videocam_off_outlined,
-            text: l10n.cameraUnavailable,
-            action: l10n.retry,
-            onAction: () => setState(() => _stage = _Stage.camera),
-          ),
-        _Stage.camera => Stack(
-            fit: StackFit.expand,
-            children: [
-              _bridge.cameraView(onCreated: _startCamera),
-              if (ref.watch(debugPanelProvider) case final debugPanel?)
-                Positioned(top: 16, left: 16, child: debugPanel(_bridge.events, ref.watch(wallClockMsProvider))),
-            ],
-          ),
-      },
+    return PortraitLock(
+      child: Scaffold(
+        appBar: AppBar(title: Text(widget.exercise.localizedName(l10n))),
+        body: switch (_stage) {
+          _Stage.checkingPermission => const SizedBox.shrink(),
+          _Stage.explainingPermission => _Notice(
+              icon: Icons.videocam_outlined,
+              text: l10n.cameraPermissionExplanation,
+              action: l10n.cameraPermissionAllow,
+              onAction: _requestPermission,
+            ),
+          _Stage.permissionDenied => _Notice(
+              icon: Icons.videocam_off_outlined,
+              text: l10n.cameraPermissionDenied,
+              action: l10n.cameraPermissionOpenSettings,
+              onAction: _permission.openSettings,
+            ),
+          _Stage.cameraUnavailable => _Notice(
+              icon: Icons.videocam_off_outlined,
+              text: l10n.cameraUnavailable,
+              action: l10n.retry,
+              onAction: () => setState(() => _stage = _Stage.camera),
+            ),
+          _Stage.camera => Stack(
+              fit: StackFit.expand,
+              children: [
+                _bridge.cameraView(onCreated: _startCamera),
+                if (ref.watch(debugPanelProvider) case final debugPanel?)
+                  Positioned(top: 16, left: 16, child: debugPanel(_bridge.events, ref.watch(wallClockMsProvider))),
+              ],
+            ),
+        },
+      ),
     );
   }
 }

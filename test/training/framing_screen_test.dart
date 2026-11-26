@@ -7,9 +7,11 @@ import 'package:gymassistant/analysis/camera_permission.dart';
 import '../support/fakes.dart';
 import '../support/test_app.dart';
 
-/// Opens P08 for the lat pulldown from P06.
+/// Opens P08 for the lat pulldown from P06, through the camera guide.
 Future<void> openFraming(WidgetTester tester) async {
   await tester.tap(find.text('Jalón al pecho'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Listo, abrir cámara'));
   await tester.pumpAndSettle();
 }
 

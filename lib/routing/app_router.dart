@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../home/home_shell.dart';
+import '../training/camera_guide_screen.dart';
 import '../training/choose_exercise_screen.dart';
 import '../training/exercise.dart';
 import '../training/framing_screen.dart';
@@ -11,6 +12,9 @@ import '../training/framing_screen.dart';
 abstract final class AppRoutes {
   /// P06, the Train tab of P05.
   static const train = '/train';
+
+  /// P07 for [exercise].
+  static String cameraGuide(Exercise exercise) => '$train/${exercise.code}/guide';
 
   /// P08 for [exercise].
   static String framing(Exercise exercise) => '$train/${exercise.code}/framing';
@@ -37,6 +41,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: AppRoutes.train,
                 builder: (context, state) => const ChooseExerciseScreen(),
                 routes: [
+                  GoRoute(
+                    path: ':exercise/guide',
+                    parentNavigatorKey: rootNavigatorKey,
+                    redirect: (context, state) =>
+                        _exerciseFromPath(state) == null ? AppRoutes.train : null,
+                    builder: (context, state) => CameraGuideScreen(exercise: _exerciseFromPath(state)!),
+                  ),
                   GoRoute(
                     path: ':exercise/framing',
                     parentNavigatorKey: rootNavigatorKey,
