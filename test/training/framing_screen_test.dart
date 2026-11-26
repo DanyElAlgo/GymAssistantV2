@@ -169,6 +169,25 @@ void main() {
     expect(find.text('Listo, puedes empezar'), findsNothing);
   });
 
+  testWidgets('the framing card stays clear of the system navigation bar', (tester) async {
+    // A 48-dp navigation bar at the bottom, as Android draws it with edge-to-edge layout.
+    final navigationBar = 48 * tester.view.devicePixelRatio;
+    tester.view.padding = FakeViewPadding(bottom: navigationBar);
+    tester.view.viewPadding = FakeViewPadding(bottom: navigationBar);
+    addTearDown(tester.view.resetPadding);
+    addTearDown(tester.view.resetViewPadding);
+    final bridge = FakeAnalysisBridge();
+    await pumpApp(tester, bridge: bridge);
+    await openFraming(tester);
+
+    bridge.emit(framing(missing: [Joint.wrist]));
+    await tester.pumpAndSettle();
+
+    final screenHeight = tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    final card = find.ancestor(of: startButton, matching: find.byType(Card));
+    expect(tester.getRect(card).bottom, lessThanOrEqualTo(screenHeight - 48));
+  });
+
   testWidgets('it names the body parts it cannot see', (tester) async {
     final bridge = FakeAnalysisBridge();
     await pumpApp(tester, bridge: bridge);

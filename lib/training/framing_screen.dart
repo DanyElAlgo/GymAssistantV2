@@ -150,7 +150,17 @@ class _FramingScreenState extends ConsumerState<FramingScreen> with WidgetsBindi
                 _bridge.cameraView(onCreated: _startCamera),
                 if (ref.watch(debugPanelProvider) case final debugPanel?)
                   Positioned(top: 16, left: 16, child: debugPanel(_bridge.events, ref.watch(wallClockMsProvider))),
-                Positioned(left: 16, right: 16, bottom: 16, child: _FramingStatus(framing: _framing)),
+                // The camera fills the screen edge to edge; the card keeps clear of the system bars.
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: SafeArea(
+                    top: false,
+                    minimum: const EdgeInsets.all(16),
+                    child: _FramingStatus(framing: _framing),
+                  ),
+                ),
               ],
             ),
         },
