@@ -1,17 +1,22 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../analysis/analysis_bridge.dart';
+import '../analysis/analysis_event.dart';
 import '../analysis/analysis_providers.dart';
 import '../analysis/camera_permission.dart';
 import '../l10n/app_localizations.dart';
 import '../research/research_build.dart';
+import 'body_presentation.dart';
 import 'exercise.dart';
 import 'exercise_presentation.dart';
 import 'portrait_lock.dart';
 
 /// P08, Verificar encuadre: the user sees themself in the front camera, as in a mirror, with
-/// the skeleton on top (HU-08). The framing check and its button arrive with SCRUM-50.
+/// the skeleton on top (HU-08). The screen says which body parts the camera does not see, or
+/// that it sees no one, and the start button stays locked until framing is valid (HU-10).
 ///
 /// The camera permission is asked with an explanation first; if it is denied, the screen
 /// leads to the system settings. The screen stays in portrait, and the camera is released
@@ -25,25 +30,33 @@ class FramingScreen extends ConsumerStatefulWidget {
   ConsumerState<FramingScreen> createState() => _FramingScreenState();
 }
 
-enum _Stage { checkingPermission, explainingPermission, permissionDenied, camera, cameraUnavailable }
+enum _Stage { checkingPermission, explainingPermission, permissionDenied, camera, cameraUnavailable, analysisUnavailable }
 
 class _FramingScreenState extends ConsumerState<FramingScreen> with WidgetsBindingObserver {
   late final AnalysisBridge _bridge;
   late final CameraPermission _permission;
+  late final StreamSubscription<AnalysisEvent> _events;
   var _stage = _Stage.checkingPermission;
   var _cameraStarted = false;
+
+  /// The latest framing result; null until the first one arrives.
+  FramingEvent? _framing;
 
   @override
   void initState() {
     super.initState();
     _bridge = ref.read(analysisBridgeProvider);
     _permission = ref.read(cameraPermissionProvider);
+    _events = _bridge.events.listen((event) {
+      if (event is FramingEvent && mounted) setState(() => _framing = event);
+    });
     WidgetsBinding.instance.addObserver(this);
     _checkPermission();
   }
 
   @override
   void dispose() {
+    _events.cancel();
     WidgetsBinding.instance.removeObserver(this);
     if (_cameraStarted) _bridge.releaseCamera();
     super.dispose();
@@ -81,6 +94,7 @@ class _FramingScreenState extends ConsumerState<FramingScreen> with WidgetsBindi
   }
 
   Future<void> _startCamera() async {
+    setState(() => _framing = null);
     try {
       await _bridge.startCamera();
       _cameraStarted = true;
@@ -88,6 +102,13 @@ class _FramingScreenState extends ConsumerState<FramingScreen> with WidgetsBindi
       if (!mounted) return;
       setState(() => _stage =
           e.code == AnalysisErrorCode.cameraPermission ? _Stage.permissionDenied : _Stage.cameraUnavailable);
+      return;
+    }
+    try {
+      await _bridge.checkFraming(widget.exercise);
+    } on AnalysisException {
+      // An invalid rules file, or an exercise the native side does not know: nothing to retry.
+      if (mounted) setState(() => _stage = _Stage.analysisUnavailable);
     }
   }
 
@@ -117,15 +138,62 @@ class _FramingScreenState extends ConsumerState<FramingScreen> with WidgetsBindi
               action: l10n.retry,
               onAction: () => setState(() => _stage = _Stage.camera),
             ),
+          _Stage.analysisUnavailable => Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(l10n.analysisConfigInvalid, textAlign: TextAlign.center),
+              ),
+            ),
           _Stage.camera => Stack(
               fit: StackFit.expand,
               children: [
                 _bridge.cameraView(onCreated: _startCamera),
                 if (ref.watch(debugPanelProvider) case final debugPanel?)
                   Positioned(top: 16, left: 16, child: debugPanel(_bridge.events, ref.watch(wallClockMsProvider))),
+                Positioned(left: 16, right: 16, bottom: 16, child: _FramingStatus(framing: _framing)),
               ],
             ),
         },
+      ),
+    );
+  }
+}
+
+/// What the framing check says, and the start button it unlocks.
+class _FramingStatus extends StatelessWidget {
+  const _FramingStatus({required this.framing});
+
+  final FramingEvent? framing;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final framing = this.framing;
+    final message = switch (framing) {
+      null => null,
+      FramingEvent(personDetected: false) => l10n.framingNoPerson,
+      FramingEvent(missingJoints: final missing) when missing.isNotEmpty =>
+        l10n.framingMissingJoints(missing.map((joint) => joint.localizedName(l10n)).join(', ')),
+      FramingEvent(isValid: false) => l10n.framingHold,
+      FramingEvent() => l10n.framingReady,
+    };
+    final ready = framing?.isValid ?? false;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (message != null) ...[
+              Text(message, textAlign: TextAlign.center, style: theme.textTheme.titleMedium),
+              const SizedBox(height: 12),
+            ],
+            // P09 and the set arrive with SCRUM-51.
+            FilledButton(onPressed: ready ? () {} : null, child: Text(l10n.startSet)),
+          ],
+        ),
       ),
     );
   }

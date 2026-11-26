@@ -12,6 +12,8 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import io.flutter.FlutterInjector
+import java.io.IOException
 import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -21,8 +23,8 @@ import java.util.concurrent.Executors
  * (Diseño §4.1). Commands arrive on the main thread.
  *
  * Threads: CameraX hands frames to [analysisExecutor], which also owns the [PoseEstimator];
- * MediaPipe returns poses on its own thread; the overlay and the events go out on the main
- * thread. No frame outlives its analysis (ADR-0005).
+ * MediaPipe returns poses on its own thread, which also runs the [PoseAnalyzer]; the overlay
+ * and the events go out on the main thread. No frame outlives its analysis (ADR-0005).
  */
 class AnalysisController(
     private val activity: Activity,
@@ -44,6 +46,12 @@ class AnalysisController(
 
     private val measurementLock = Any()
     private var monitor: PerformanceMonitor? = null
+
+    // Read once, on the main thread; thresholds come only from this file (ADR-0006).
+    private var rules: Rules? = null
+
+    // Replaced on the main thread, used on MediaPipe's thread.
+    @Volatile private var framing: FramingSession? = null
 
     @Volatile private var analysisSize: Size? = null
     @Volatile private var lastFps: Double? = null
@@ -88,8 +96,28 @@ class AnalysisController(
         }, ContextCompat.getMainExecutor(activity))
     }
 
+    /**
+     * Diseño §11.4 `checkFraming`: from now on, analyses each pose for [exerciseCode] and emits
+     * `framing` whenever the result changes. Fails with `UNKNOWN_EXERCISE` or `INVALID_CONFIG`.
+     */
+    fun checkFraming(exerciseCode: String, onDone: (errorCode: String?, message: String?) -> Unit) {
+        val exercise = Exercise.fromCode(exerciseCode) ?: return onDone(UNKNOWN_EXERCISE, "Unknown exercise $exerciseCode")
+        val rules = try {
+            rules ?: loadRules().also { rules = it }
+        } catch (exception: InvalidRulesException) {
+            Log.e(TAG, "Invalid rules file $RULES_ASSET", exception)
+            return onDone(INVALID_CONFIG, exception.message)
+        } catch (exception: IOException) {
+            Log.e(TAG, "Could not read the rules file $RULES_ASSET", exception)
+            return onDone(INVALID_CONFIG, exception.message)
+        }
+        framing = FramingSession(PoseAnalyzer(rules.forExercise(exercise)))
+        onDone(null, null)
+    }
+
     fun releaseCamera() {
         cameraGeneration++
+        framing = null
         stopMeasuring()
         measuring = false
         capture?.stop()
@@ -135,6 +163,21 @@ class AnalysisController(
         synchronized(measurementLock) { monitor?.recordFrame(capturedAtMs, analyzedAtMs = clock()) }
         val size = analysisSize
         mainHandler.post { view?.skeleton?.show(pose, size, capture?.previewSize) }
+
+        val session = framing ?: return
+        val result = session.analyzer.analyze(pose)
+        if (result != session.lastResult) {
+            session.lastResult = result
+            // A session replaced or released meanwhile no longer speaks for P08.
+            mainHandler.post { if (framing === session) emitter.emitFraming(result) }
+        }
+    }
+
+    /** The rules file the app ships, from the Flutter assets. */
+    private fun loadRules(): Rules {
+        val assetKey = FlutterInjector.instance().flutterLoader().getLookupKeyForAsset(RULES_ASSET)
+        val json = activity.assets.open(assetKey).bufferedReader().use { it.readText() }
+        return RulesLoader.parse(json)
     }
 
     /** Loads [variant] on the analysis thread, then runs [onReady] on the main thread. */
@@ -180,9 +223,19 @@ class AnalysisController(
         }
     }
 
+    /** The framing check of one exercise; only MediaPipe's thread touches its state. */
+    private class FramingSession(val analyzer: PoseAnalyzer) {
+        var lastResult: FrameAnalysis? = null
+    }
+
     companion object {
         const val CAMERA_PERMISSION = "CAMERA_PERMISSION"
         const val CAMERA_IN_USE = "CAMERA_IN_USE"
+        const val UNKNOWN_EXERCISE = "UNKNOWN_EXERCISE"
+        const val INVALID_CONFIG = "INVALID_CONFIG"
+
+        /** Provisional rules (ADR-0006), until calibration produces 1.0.0. */
+        private const val RULES_ASSET = "assets/rules/rules_v0.1.0.json"
         private const val TAG = "AnalysisController"
         private const val SAMPLE_PERIOD_MS = 1_000L
     }

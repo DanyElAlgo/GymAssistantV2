@@ -114,5 +114,79 @@
   "debugPanelLatencyPending": "Latencia mediana: —",
   "@debugPanelLatencyPending": {
     "description": "Research build debug panel, before any frame was analysed."
+  },
+  "framingNoPerson": "No veo a nadie. Ponte frente a la cámara.",
+  "@framingNoPerson": {
+    "description": "P08, when the camera sees no person (HU-10)."
+  },
+  "framingMissingJoints": "Fuera de la imagen: {joints}",
+  "@framingMissingJoints": {
+    "description": "P08, the required body parts the camera does not see (HU-10), as a comma-separated list of joint names.",
+    "placeholders": {
+      "joints": {
+        "type": "String"
+      }
+    }
+  },
+  "framingHold": "Mantén la posición…",
+  "@framingHold": {
+    "description": "P08, every required body part is in view, but not yet for long enough."
+  },
+  "framingReady": "Listo, puedes empezar",
+  "@framingReady": {
+    "description": "P08, framing is valid and the set can start (HU-10). Wording fixed by the acceptance criteria."
+  },
+  "startSet": "Empezar",
+  "@startSet": {
+    "description": "P08 button that starts the set; locked until framing is valid."
+  },
+  "analysisConfigInvalid": "No se pudo cargar la configuración del análisis. Reinstala GymAssistant.",
+  "@analysisConfigInvalid": {
+    "description": "P08, when the rules file is invalid (INVALID_CONFIG)."
+  },
+  "jointShoulder": "hombro",
+  "@jointShoulder": {
+    "description": "A body part named without its side, in a list of parts out of view."
+  },
+  "jointElbow": "codo",
+  "@jointElbow": {
+    "description": "A body part named without its side, in a list of parts out of view."
+  },
+  "jointWrist": "muñeca",
+  "@jointWrist": {
+    "description": "A body part named without its side, in a list of parts out of view."
+  },
+  "jointHip": "cadera",
+  "@jointHip": {
+    "description": "A body part named without its side, in a list of parts out of view."
+  },
+  "jointKnee": "rodilla",
+  "@jointKnee": {
+    "description": "A body part named without its side, in a list of parts out of view."
+  },
+  "jointAnkle": "tobillo",
+  "@jointAnkle": {
+    "description": "A body part named without its side, in a list of parts out of view."
+  },
+  "debugPanelSide": "Lado medido: {side}",
+  "@debugPanelSide": {
+    "description": "Research build debug panel: the side of the body being measured.",
+    "placeholders": {
+      "side": {
+        "type": "String"
+      }
+    }
+  },
+  "debugPanelSidePending": "Lado medido: —",
+  "@debugPanelSidePending": {
+    "description": "Research build debug panel, before framing is valid."
+  },
+  "sideLeft": "izquierdo",
+  "@sideLeft": {
+    "description": "The user's left side, after 'Measured side:'."
+  },
+  "sideRight": "derecho",
+  "@sideRight": {
+    "description": "The user's right side, after 'Measured side:'."
   }
 }

@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import '../training/exercise.dart';
 import 'analysis_bridge.dart';
 import 'analysis_event.dart';
+import 'body.dart';
 
 /// [AnalysisBridge] over the native channels of Diseño §11.4.
 class ChannelAnalysisBridge implements AnalysisBridge {
@@ -66,6 +67,14 @@ class ChannelAnalysisBridge implements AnalysisBridge {
     final map = raw! as Map<Object?, Object?>;
     final emittedAtMs = map['t']! as int;
     return switch (map['type']) {
+      'framing' => FramingEvent(
+          emittedAtMs: emittedAtMs,
+          personDetected: map['person_detected']! as bool,
+          isValid: map['is_valid']! as bool,
+          // Both sides list the same joints; one this version doesn't know is left out.
+          missingJoints: (map['missing_landmarks']! as List<Object?>).map((code) => Joint.fromCode(code! as String)).nonNulls.toList(),
+          measuredSide: Side.fromCode(map['measured_side'] as String?),
+        ),
       'performance' => PerformanceEvent(
           emittedAtMs: emittedAtMs,
           fps: (map['fps']! as num).toDouble(),

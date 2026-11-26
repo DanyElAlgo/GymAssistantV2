@@ -24,6 +24,22 @@ class EventEmitter : EventChannel.StreamHandler {
         emit("performance", mapOf("fps" to sample.fps, "latency_ms" to sample.latencyMs))
     }
 
+    /**
+     * `framing`, when the result changes: whether a person is seen, whether framing is valid,
+     * the missing joints by name, without side (ADR-0012), and the measured side once valid.
+     */
+    fun emitFraming(result: FrameAnalysis) {
+        emit(
+            "framing",
+            mapOf(
+                "person_detected" to result.personDetected,
+                "is_valid" to result.framingValid,
+                "missing_landmarks" to result.missingJoints.map { it.code },
+                "measured_side" to result.measuredSide?.code,
+            ),
+        )
+    }
+
     private fun emit(type: String, fields: Map<String, Any?>) {
         sink?.success(mapOf("type" to type, "t" to System.currentTimeMillis()) + fields)
     }

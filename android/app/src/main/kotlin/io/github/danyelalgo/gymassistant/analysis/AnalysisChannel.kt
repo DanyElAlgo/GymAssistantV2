@@ -22,8 +22,11 @@ class AnalysisChannel private constructor(private val controller: AnalysisContro
                 controller.releaseCamera()
                 result.success(null)
             }
+            "checkFraming" -> controller.checkFraming(call.argument<String>("exercise").orEmpty()) { errorCode, message ->
+                if (errorCode == null) result.success(null) else result.error(errorCode, message, null)
+            }
             "capabilities" -> result.success(controller.capabilities())
-            // checkFraming arrives with SCRUM-50; startSet and stopSet with SCRUM-51.
+            // startSet and stopSet arrive with SCRUM-51.
             else -> result.notImplemented()
         }
     }

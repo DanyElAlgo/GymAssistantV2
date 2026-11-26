@@ -1,0 +1,19 @@
+{
+  "version": "0.1.0",
+  "min_visibility": 0.5,
+  "min_valid_framing_ms": 2000,
+  "exercises": [
+    {
+      "code": "LEG_PRESS_45",
+      "required_landmarks": ["hip", "knee", "ankle"]
+    },
+    {
+      "code": "LAT_PULLDOWN",
+      "required_landmarks": ["shoulder", "elbow", "wrist"]
+    },
+    {
+      "code": "LEG_EXTENSION",
+      "required_landmarks": ["hip", "knee", "ankle"]
+    }
+  ]
+}

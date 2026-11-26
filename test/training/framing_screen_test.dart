@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gymassistant/analysis/analysis_bridge.dart';
 import 'package:gymassistant/analysis/analysis_event.dart';
+import 'package:gymassistant/analysis/body.dart';
 import 'package:gymassistant/analysis/camera_permission.dart';
+import 'package:gymassistant/training/exercise.dart';
 
 import '../support/fakes.dart';
 import '../support/test_app.dart';
@@ -16,6 +18,18 @@ Future<void> openFraming(WidgetTester tester) async {
 }
 
 final cameraView = find.byKey(FakeAnalysisBridge.cameraViewKey);
+
+final startButton = find.widgetWithText(FilledButton, 'Empezar');
+
+bool isEnabled(WidgetTester tester, Finder button) => tester.widget<FilledButton>(button).onPressed != null;
+
+FramingEvent framing({
+  bool personDetected = true,
+  bool isValid = false,
+  List<Joint> missing = const [],
+  Side? side,
+}) =>
+    FramingEvent(emittedAtMs: 0, personDetected: personDetected, isValid: isValid, missingJoints: missing, measuredSide: side);
 
 void main() {
   testWidgets('explains why it needs the camera before asking for it, then shows the camera', (tester) async {
@@ -122,6 +136,97 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(bridge.releaseCameraCalls, 1);
+  });
+
+  testWidgets('once the camera is on, it checks the framing of the chosen exercise', (tester) async {
+    final bridge = FakeAnalysisBridge();
+    await pumpApp(tester, bridge: bridge);
+
+    await openFraming(tester);
+
+    expect(bridge.checkFramingCalls, [Exercise.latPulldown]);
+  });
+
+  testWidgets('the start button stays locked until framing is valid, and locks again when it is lost', (tester) async {
+    final bridge = FakeAnalysisBridge();
+    await pumpApp(tester, bridge: bridge);
+    await openFraming(tester);
+
+    expect(isEnabled(tester, startButton), isFalse);
+
+    bridge.emit(framing(missing: [Joint.wrist]));
+    await tester.pumpAndSettle();
+    expect(isEnabled(tester, startButton), isFalse);
+
+    bridge.emit(framing(isValid: true, side: Side.left));
+    await tester.pumpAndSettle();
+    expect(isEnabled(tester, startButton), isTrue);
+    expect(find.text('Listo, puedes empezar'), findsOneWidget);
+
+    bridge.emit(framing(missing: [Joint.elbow]));
+    await tester.pumpAndSettle();
+    expect(isEnabled(tester, startButton), isFalse);
+    expect(find.text('Listo, puedes empezar'), findsNothing);
+  });
+
+  testWidgets('it names the body parts it cannot see', (tester) async {
+    final bridge = FakeAnalysisBridge();
+    await pumpApp(tester, bridge: bridge);
+    await openFraming(tester);
+
+    bridge.emit(framing(missing: [Joint.wrist]));
+    await tester.pumpAndSettle();
+    expect(find.text('Fuera de la imagen: muñeca'), findsOneWidget);
+
+    bridge.emit(framing(missing: [Joint.elbow, Joint.wrist]));
+    await tester.pumpAndSettle();
+    expect(find.text('Fuera de la imagen: codo, muñeca'), findsOneWidget);
+  });
+
+  testWidgets('it warns when it sees no person, instead of listing every joint', (tester) async {
+    final bridge = FakeAnalysisBridge();
+    await pumpApp(tester, bridge: bridge);
+    await openFraming(tester);
+
+    bridge.emit(framing(personDetected: false, missing: [Joint.shoulder, Joint.elbow, Joint.wrist]));
+    await tester.pumpAndSettle();
+
+    expect(find.text('No veo a nadie. Ponte frente a la cámara.'), findsOneWidget);
+    expect(find.textContaining('Fuera de la imagen'), findsNothing);
+    expect(isEnabled(tester, startButton), isFalse);
+  });
+
+  testWidgets('with every joint in view but not yet for long enough, it asks to hold the position', (tester) async {
+    final bridge = FakeAnalysisBridge();
+    await pumpApp(tester, bridge: bridge);
+    await openFraming(tester);
+
+    bridge.emit(framing());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mantén la posición…'), findsOneWidget);
+    expect(isEnabled(tester, startButton), isFalse);
+  });
+
+  testWidgets('an invalid rules file explains that the analysis cannot start', (tester) async {
+    final bridge = FakeAnalysisBridge()..checkFramingError = const AnalysisException(AnalysisErrorCode.invalidConfig);
+    await pumpApp(tester, bridge: bridge);
+
+    await openFraming(tester);
+
+    expect(find.textContaining('configuración del análisis'), findsOneWidget);
+    expect(startButton, findsNothing);
+  });
+
+  testWidgets('the research build shows the measured side', (tester) async {
+    final bridge = FakeAnalysisBridge();
+    await pumpApp(tester, bridge: bridge, researchBuild: true);
+    await openFraming(tester);
+
+    bridge.emit(framing(isValid: true, side: Side.right));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Lado medido: derecho'), findsOneWidget);
   });
 
   testWidgets('the research build shows the fps and the median latency up to Flutter', (tester) async {

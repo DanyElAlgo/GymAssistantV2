@@ -2,7 +2,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gymassistant/analysis/analysis_bridge.dart';
 import 'package:gymassistant/analysis/analysis_event.dart';
+import 'package:gymassistant/analysis/body.dart';
 import 'package:gymassistant/analysis/channel_analysis_bridge.dart';
+import 'package:gymassistant/training/exercise.dart';
 
 const methods = MethodChannel('gymassistant/analysis');
 const events = EventChannel('gymassistant/analysis/events');
@@ -39,6 +41,40 @@ void main() {
       PerformanceEvent(emittedAtMs: 1700000000123, fps: 23.5, captureToAnalysisMs: 71),
       PerformanceEvent(emittedAtMs: 1700000001123, fps: 0, captureToAnalysisMs: null),
     ]);
+  });
+
+  test('framing events arrive typed, with the missing joints by name and the measured side', () async {
+    emit([
+      {'type': 'framing', 't': 1700000000100, 'person_detected': false, 'is_valid': false, 'missing_landmarks': ['shoulder', 'elbow', 'wrist'], 'measured_side': null},
+      {'type': 'framing', 't': 1700000000200, 'person_detected': true, 'is_valid': false, 'missing_landmarks': ['knee'], 'measured_side': null},
+      {'type': 'framing', 't': 1700000002300, 'person_detected': true, 'is_valid': true, 'missing_landmarks': <Object?>[], 'measured_side': 'right'},
+    ]);
+
+    final received = await ChannelAnalysisBridge().events.toList();
+
+    expect(received, const [
+      FramingEvent(
+        emittedAtMs: 1700000000100,
+        personDetected: false,
+        isValid: false,
+        missingJoints: [Joint.shoulder, Joint.elbow, Joint.wrist],
+      ),
+      FramingEvent(emittedAtMs: 1700000000200, personDetected: true, isValid: false, missingJoints: [Joint.knee]),
+      FramingEvent(emittedAtMs: 1700000002300, personDetected: true, isValid: true, missingJoints: [], measuredSide: Side.right),
+    ]);
+  });
+
+  test('checkFraming sends the exercise code', () async {
+    final calls = <MethodCall>[];
+    answer((call) async {
+      calls.add(call);
+      return null;
+    });
+
+    await ChannelAnalysisBridge().checkFraming(Exercise.legPress45);
+
+    expect(calls.single.method, 'checkFraming');
+    expect(calls.single.arguments, {'exercise': 'LEG_PRESS_45'});
   });
 
   test('a native refusal arrives as an AnalysisException with its contract code', () async {
