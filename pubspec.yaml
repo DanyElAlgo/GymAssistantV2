@@ -33,5 +33,7 @@ flutter:
   assets:
     # Neutral machine illustrations for P06; placeholders until the final ones.
     - assets/exercises/
+    # Analysis thresholds, read by the native analysis (ADR-0006).
+    - assets/rules/
   # Android product flavor used when no --flavor is given (ADR-0013).
   default-flavor: play

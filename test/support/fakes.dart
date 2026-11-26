@@ -18,8 +18,14 @@ class FakeAnalysisBridge implements AnalysisBridge {
   int startCameraCalls = 0;
   int releaseCameraCalls = 0;
 
+  /// The exercises [checkFraming] was asked for, in order.
+  final checkFramingCalls = <Exercise>[];
+
   /// Thrown by the next [startCamera], as the native side would.
   AnalysisException? startCameraError;
+
+  /// Thrown by [checkFraming], as the native side would.
+  AnalysisException? checkFramingError;
 
   void emit(AnalysisEvent event) => _events.add(event);
 
@@ -43,7 +49,11 @@ class FakeAnalysisBridge implements AnalysisBridge {
   Future<AnalysisCapabilities> capabilities() async => const AnalysisCapabilities(modelVariant: ModelVariant.full);
 
   @override
-  Future<void> checkFraming(Exercise exercise) async {}
+  Future<void> checkFraming(Exercise exercise) async {
+    checkFramingCalls.add(exercise);
+    final error = checkFramingError;
+    if (error != null) throw error;
+  }
 
   @override
   Future<void> startSet({required Exercise exercise, required bool silentMode, required String rulesVersion}) async {}

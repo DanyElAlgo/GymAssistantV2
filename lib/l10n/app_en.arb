@@ -25,5 +25,21 @@
   "retry": "Try again",
   "debugPanelFps": "{fps} fps",
   "debugPanelLatency": "Median latency: {latency} ms",
-  "debugPanelLatencyPending": "Median latency: —"
+  "debugPanelLatencyPending": "Median latency: —",
+  "framingNoPerson": "I can't see anyone. Stand in front of the camera.",
+  "framingMissingJoints": "Out of view: {joints}",
+  "framingHold": "Hold your position…",
+  "framingReady": "Ready, you can start",
+  "startSet": "Start",
+  "analysisConfigInvalid": "The analysis settings couldn't be loaded. Reinstall GymAssistant.",
+  "jointShoulder": "shoulder",
+  "jointElbow": "elbow",
+  "jointWrist": "wrist",
+  "jointHip": "hip",
+  "jointKnee": "knee",
+  "jointAnkle": "ankle",
+  "debugPanelSide": "Measured side: {side}",
+  "debugPanelSidePending": "Measured side: —",
+  "sideLeft": "left",
+  "sideRight": "right"
 }
