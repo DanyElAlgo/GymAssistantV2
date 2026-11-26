@@ -17,6 +17,7 @@ dependencies:
   flutter_svg: ^2.5.1
   go_router: ^18.1.4
   intl: any
+  permission_handler: 12.0.1
 
 dev_dependencies:
   flutter_test:

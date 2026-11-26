@@ -8,5 +8,14 @@
   "chooseExerciseTitle": "Escolha um exercício",
   "exerciseLegPress45": "Leg press 45°",
   "exerciseLatPulldown": "Puxada frontal",
-  "exerciseLegExtension": "Cadeira extensora"
+  "exerciseLegExtension": "Cadeira extensora",
+  "cameraPermissionExplanation": "O GymAssistant usa a câmera frontal para ver suas articulações enquanto você treina. As imagens são analisadas no celular e nunca são salvas nem enviadas.",
+  "cameraPermissionAllow": "Permitir câmera",
+  "cameraPermissionDenied": "Sem a câmera, o GymAssistant não consegue analisar você. Ative-a nas configurações do sistema, em Permissões › Câmera.",
+  "cameraPermissionOpenSettings": "Abrir configurações",
+  "cameraUnavailable": "Não foi possível abrir a câmera. Feche os outros apps que a estejam usando e tente de novo.",
+  "retry": "Tentar de novo",
+  "debugPanelFps": "{fps} fps",
+  "debugPanelLatency": "Latência mediana: {latency} ms",
+  "debugPanelLatencyPending": "Latência mediana: —"
 }

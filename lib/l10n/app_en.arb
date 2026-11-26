@@ -8,5 +8,14 @@
   "chooseExerciseTitle": "Choose an exercise",
   "exerciseLegPress45": "45° leg press",
   "exerciseLatPulldown": "Lat pulldown",
-  "exerciseLegExtension": "Leg extension"
+  "exerciseLegExtension": "Leg extension",
+  "cameraPermissionExplanation": "GymAssistant uses the front camera to see your joints while you train. Images are analysed on the phone and are never stored or sent.",
+  "cameraPermissionAllow": "Allow camera",
+  "cameraPermissionDenied": "Without the camera, GymAssistant can't analyse you. Turn it on in the system settings, under Permissions › Camera.",
+  "cameraPermissionOpenSettings": "Open settings",
+  "cameraUnavailable": "The camera couldn't open. Close any other app that is using it and try again.",
+  "retry": "Try again",
+  "debugPanelFps": "{fps} fps",
+  "debugPanelLatency": "Median latency: {latency} ms",
+  "debugPanelLatencyPending": "Median latency: —"
 }
