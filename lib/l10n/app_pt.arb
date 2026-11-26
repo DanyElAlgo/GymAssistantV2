@@ -1,0 +1,12 @@
+{
+  "@@locale": "pt",
+  "appTitle": "GymAssistant",
+  "tabTrain": "Treinar",
+  "tabProgress": "Progresso",
+  "tabGoals": "Metas",
+  "tabProfile": "Perfil",
+  "chooseExerciseTitle": "Escolha um exercício",
+  "exerciseLegPress45": "Leg press 45°",
+  "exerciseLatPulldown": "Puxada frontal",
+  "exerciseLegExtension": "Cadeira extensora"
+}

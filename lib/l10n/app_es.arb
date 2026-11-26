@@ -1,0 +1,39 @@
+{
+  "@@locale": "es",
+  "appTitle": "GymAssistant",
+  "@appTitle": {
+    "description": "App name shown by the system task switcher."
+  },
+  "tabTrain": "Entrenar",
+  "@tabTrain": {
+    "description": "Bottom bar tab that opens the exercise list (P06)."
+  },
+  "tabProgress": "Progreso",
+  "@tabProgress": {
+    "description": "Bottom bar tab for the progress dashboard (P12)."
+  },
+  "tabGoals": "Metas",
+  "@tabGoals": {
+    "description": "Bottom bar tab for the goals list (P14)."
+  },
+  "tabProfile": "Perfil",
+  "@tabProfile": {
+    "description": "Bottom bar tab for the profile (P16)."
+  },
+  "chooseExerciseTitle": "Elige un ejercicio",
+  "@chooseExerciseTitle": {
+    "description": "Title of the exercise list (P06)."
+  },
+  "exerciseLegPress45": "Prensa de piernas a 45°",
+  "@exerciseLegPress45": {
+    "description": "Name of the LEG_PRESS_45 exercise."
+  },
+  "exerciseLatPulldown": "Jalón al pecho",
+  "@exerciseLatPulldown": {
+    "description": "Name of the LAT_PULLDOWN exercise."
+  },
+  "exerciseLegExtension": "Extensión de cuádriceps",
+  "@exerciseLegExtension": {
+    "description": "Name of the LEG_EXTENSION exercise."
+  }
+}
