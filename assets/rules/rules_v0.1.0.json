@@ -5,15 +5,15 @@
   "exercises": [
     {
       "code": "LEG_PRESS_45",
-      "required_landmarks": ["hip", "knee", "ankle"]
+      "required_joints": ["hip", "knee", "ankle"]
     },
     {
       "code": "LAT_PULLDOWN",
-      "required_landmarks": ["shoulder", "elbow", "wrist"]
+      "required_joints": ["shoulder", "elbow", "wrist"]
     },
     {
       "code": "LEG_EXTENSION",
-      "required_landmarks": ["hip", "knee", "ankle"]
+      "required_joints": ["hip", "knee", "ankle"]
     }
   ]
 }

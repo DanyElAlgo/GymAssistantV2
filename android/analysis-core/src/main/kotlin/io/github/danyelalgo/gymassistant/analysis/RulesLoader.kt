@@ -38,11 +38,13 @@ class InvalidRulesException(message: String) : Exception(message)
  *
  * Every field is required and none may be `null`, since every version has concrete values
  * (ADR-0006). Each exercise must appear exactly once, and unknown exercises or joints are
- * rejected. Fields the format does not define are ignored.
+ * rejected. Fields the format does not define are ignored. An invalid file is refused, never
+ * replaced by other values.
  */
 object RulesLoader {
 
-    fun parse(json: String): Rules {
+    /** Parses the file the app asked for as [expectedVersion]; it must declare that version. */
+    fun parse(json: String, expectedVersion: String): Rules {
         val root = try {
             Json.parseToJsonElement(json)
         } catch (exception: SerializationException) {
@@ -50,6 +52,7 @@ object RulesLoader {
         }.asObject("the rules file")
 
         val version = root.string("version")
+        if (version != expectedVersion) throw InvalidRulesException("The file declares version $version, not $expectedVersion")
         val minVisibility = root.number("min_visibility")
         if (minVisibility !in 0.0..1.0) throw InvalidRulesException("min_visibility must be between 0 and 1")
         val minValidFramingMs = root.integer("min_valid_framing_ms")
@@ -61,11 +64,11 @@ object RulesLoader {
             val code = entry.string("code")
             val exercise = Exercise.fromCode(code) ?: throw InvalidRulesException("Unknown exercise $code")
             if (exercise in exercises) throw InvalidRulesException("Exercise $code appears twice")
-            val joints = entry.array("required_landmarks").map { joint ->
-                val name = joint.asString("a required landmark of $code")
+            val joints = entry.array("required_joints").map { joint ->
+                val name = joint.asString("a required joint of $code")
                 Joint.fromCode(name) ?: throw InvalidRulesException("Unknown joint $name in $code")
             }
-            if (joints.isEmpty()) throw InvalidRulesException("$code requires no landmarks")
+            if (joints.isEmpty()) throw InvalidRulesException("$code requires no joints")
             exercises[exercise] = ExerciseConfig(
                 version = version,
                 exercise = exercise,

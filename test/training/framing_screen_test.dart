@@ -4,6 +4,7 @@ import 'package:gymassistant/analysis/analysis_bridge.dart';
 import 'package:gymassistant/analysis/analysis_event.dart';
 import 'package:gymassistant/analysis/body.dart';
 import 'package:gymassistant/analysis/camera_permission.dart';
+import 'package:gymassistant/analysis/rules_version.dart';
 import 'package:gymassistant/training/exercise.dart';
 
 import '../support/fakes.dart';
@@ -138,13 +139,13 @@ void main() {
     expect(bridge.releaseCameraCalls, 1);
   });
 
-  testWidgets('once the camera is on, it checks the framing of the chosen exercise', (tester) async {
+  testWidgets('once the camera is on, it checks the framing of the chosen exercise with the active rules', (tester) async {
     final bridge = FakeAnalysisBridge();
     await pumpApp(tester, bridge: bridge);
 
     await openFraming(tester);
 
-    expect(bridge.checkFramingCalls, [Exercise.latPulldown]);
+    expect(bridge.checkFramingCalls, [(exercise: Exercise.latPulldown, rulesVersion: activeRulesVersion)]);
   });
 
   testWidgets('the start button stays locked until framing is valid, and locks again when it is lost', (tester) async {

@@ -74,6 +74,10 @@ The 33 body landmarks estimated from a single camera frame.
 One tracked body point (a hip, knee, ankle, shoulder…) within a pose.
 _Avoid_: keypoint, joint (when meaning the tracked point)
 
+**Joint** (Articulación):
+A body part named without its side, such as the hip, knee or elbow. Each joint has a left and a right landmark, and the measured side picks which one is analysed.
+_Avoid_: landmark (when no side is meant)
+
 **Camera position** (Posición de cámara):
 Where the phone stands relative to the user and the machine: **side** (0°, perpendicular to the user's side), **oblique** (diagonal, 30° from the side) or **front**. Each exercise has a recommended camera position: oblique for the leg press, side for the lat pulldown and the leg extension.
 _Avoid_: camera angle (collides with joint angles)

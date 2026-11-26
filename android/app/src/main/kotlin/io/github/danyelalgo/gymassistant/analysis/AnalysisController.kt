@@ -47,7 +47,7 @@ class AnalysisController(
     private val measurementLock = Any()
     private var monitor: PerformanceMonitor? = null
 
-    // Read once, on the main thread; thresholds come only from this file (ADR-0006).
+    // The last rules file read, on the main thread; thresholds come only from it (ADR-0006).
     private var rules: Rules? = null
 
     // Replaced on the main thread, used on MediaPipe's thread.
@@ -97,18 +97,20 @@ class AnalysisController(
     }
 
     /**
-     * Diseño §11.4 `checkFraming`: from now on, analyses each pose for [exerciseCode] and emits
-     * `framing` whenever the result changes. Fails with `UNKNOWN_EXERCISE` or `INVALID_CONFIG`.
+     * Diseño §11.4 `checkFraming`: from now on, analyses each pose for [exerciseCode] with the
+     * thresholds of [rulesVersion], and emits `framing` whenever the result changes. Fails with
+     * `UNKNOWN_EXERCISE`, or `INVALID_CONFIG` when that rules file is missing or invalid; it is
+     * refused, never replaced by other values (ADR-0006).
      */
-    fun checkFraming(exerciseCode: String, onDone: (errorCode: String?, message: String?) -> Unit) {
+    fun checkFraming(exerciseCode: String, rulesVersion: String, onDone: (errorCode: String?, message: String?) -> Unit) {
         val exercise = Exercise.fromCode(exerciseCode) ?: return onDone(UNKNOWN_EXERCISE, "Unknown exercise $exerciseCode")
         val rules = try {
-            rules ?: loadRules().also { rules = it }
+            rules?.takeIf { it.version == rulesVersion } ?: loadRules(rulesVersion).also { rules = it }
         } catch (exception: InvalidRulesException) {
-            Log.e(TAG, "Invalid rules file $RULES_ASSET", exception)
+            Log.e(TAG, "Invalid rules file for version $rulesVersion", exception)
             return onDone(INVALID_CONFIG, exception.message)
         } catch (exception: IOException) {
-            Log.e(TAG, "Could not read the rules file $RULES_ASSET", exception)
+            Log.e(TAG, "Could not read the rules file for version $rulesVersion", exception)
             return onDone(INVALID_CONFIG, exception.message)
         }
         framing = FramingSession(PoseAnalyzer(rules.forExercise(exercise)))
@@ -173,11 +175,11 @@ class AnalysisController(
         }
     }
 
-    /** The rules file the app ships, from the Flutter assets. */
-    private fun loadRules(): Rules {
-        val assetKey = FlutterInjector.instance().flutterLoader().getLookupKeyForAsset(RULES_ASSET)
+    /** The shipped rules file of [version], from the Flutter assets. */
+    private fun loadRules(version: String): Rules {
+        val assetKey = FlutterInjector.instance().flutterLoader().getLookupKeyForAsset("assets/rules/rules_v$version.json")
         val json = activity.assets.open(assetKey).bufferedReader().use { it.readText() }
-        return RulesLoader.parse(json)
+        return RulesLoader.parse(json, expectedVersion = version)
     }
 
     /** Loads [variant] on the analysis thread, then runs [onReady] on the main thread. */
@@ -233,9 +235,6 @@ class AnalysisController(
         const val CAMERA_IN_USE = "CAMERA_IN_USE"
         const val UNKNOWN_EXERCISE = "UNKNOWN_EXERCISE"
         const val INVALID_CONFIG = "INVALID_CONFIG"
-
-        /** Provisional rules (ADR-0006), until calibration produces 1.0.0. */
-        private const val RULES_ASSET = "assets/rules/rules_v0.1.0.json"
         private const val TAG = "AnalysisController"
         private const val SAMPLE_PERIOD_MS = 1_000L
     }

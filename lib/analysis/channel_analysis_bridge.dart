@@ -28,7 +28,8 @@ class ChannelAnalysisBridge implements AnalysisBridge {
   Future<void> startCamera() => _invoke('startCamera');
 
   @override
-  Future<void> checkFraming(Exercise exercise) => _invoke('checkFraming', {'exercise': exercise.code});
+  Future<void> checkFraming({required Exercise exercise, required String rulesVersion}) =>
+      _invoke('checkFraming', {'exercise': exercise.code, 'rulesVersion': rulesVersion});
 
   @override
   Future<void> startSet({required Exercise exercise, required bool silentMode, required String rulesVersion}) =>
@@ -72,7 +73,7 @@ class ChannelAnalysisBridge implements AnalysisBridge {
           personDetected: map['person_detected']! as bool,
           isValid: map['is_valid']! as bool,
           // Both sides list the same joints; one this version doesn't know is left out.
-          missingJoints: (map['missing_landmarks']! as List<Object?>).map((code) => Joint.fromCode(code! as String)).nonNulls.toList(),
+          missingJoints: (map['missing_joints']! as List<Object?>).map((code) => Joint.fromCode(code! as String)).nonNulls.toList(),
           measuredSide: Side.fromCode(map['measured_side'] as String?),
         ),
       'performance' => PerformanceEvent(

@@ -17,8 +17,10 @@ abstract interface class AnalysisBridge {
   /// [AnalysisErrorCode.cameraPermission] or [AnalysisErrorCode.cameraInUse].
   Future<void> startCamera();
 
-  /// Asks for `framing` events for [exercise] (SCRUM-50).
-  Future<void> checkFraming(Exercise exercise);
+  /// Asks for `framing` events for [exercise], with the thresholds of [rulesVersion]. Throws
+  /// [AnalysisException] with [AnalysisErrorCode.unknownExercise], or with
+  /// [AnalysisErrorCode.invalidConfig] when that rules file is missing or invalid.
+  Future<void> checkFraming({required Exercise exercise, required String rulesVersion});
 
   /// Starts a set (SCRUM-51).
   Future<void> startSet({required Exercise exercise, required bool silentMode, required String rulesVersion});
