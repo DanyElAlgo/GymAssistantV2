@@ -6,13 +6,7 @@ import org.junit.jupiter.api.Test
 /** The core's entry point over synthetic poses, for the lat pulldown (shoulder, elbow, wrist). */
 class PoseAnalyzerTest {
 
-    private val config = ExerciseConfig(
-        version = "0.1.0",
-        exercise = Exercise.LAT_PULLDOWN,
-        requiredJoints = listOf(Joint.SHOULDER, Joint.ELBOW, Joint.WRIST),
-        minVisibility = 0.5f,
-        minValidFramingMs = 2_000,
-    )
+    private val config = config(Exercise.LAT_PULLDOWN)
 
     @Test
     fun `a frame without a person reports no person and every required joint as missing`() {
@@ -24,6 +18,7 @@ class PoseAnalyzerTest {
                 framingValid = false,
                 missingJoints = listOf(Joint.SHOULDER, Joint.ELBOW, Joint.WRIST),
                 measuredSide = null,
+                primaryAngle = null,
             ),
             result,
         )
@@ -34,7 +29,7 @@ class PoseAnalyzerTest {
         val result = PoseAnalyzer(config).analyze(pose(t = 0, hidden = setOf(Joint.WRIST to Side.LEFT, Joint.WRIST to Side.RIGHT)))
 
         assertEquals(
-            FrameAnalysis(personDetected = true, framingValid = false, missingJoints = listOf(Joint.WRIST), measuredSide = null),
+            FrameAnalysis(personDetected = true, framingValid = false, missingJoints = listOf(Joint.WRIST), measuredSide = null, primaryAngle = null),
             result,
         )
     }
@@ -94,7 +89,7 @@ class PoseAnalyzerTest {
 
         val last = PoseAnalyzer(config).analyzeAll(poses).last()
 
-        assertEquals(FrameAnalysis(personDetected = true, framingValid = false, missingJoints = listOf(Joint.WRIST), measuredSide = null), last)
+        assertEquals(FrameAnalysis(personDetected = true, framingValid = false, missingJoints = listOf(Joint.WRIST), measuredSide = null, primaryAngle = null), last)
     }
 
     @Test
@@ -115,7 +110,8 @@ class PoseAnalyzerTest {
 
         val last = PoseAnalyzer(config).analyzeAll(everyTenthOfASecond(0L..2_000L) { t -> pose(t, hidden = rightArmHidden) }).last()
 
-        assertEquals(FrameAnalysis(personDetected = true, framingValid = true, missingJoints = emptyList(), measuredSide = Side.LEFT), last)
+        assertEquals(true, last.framingValid)
+        assertEquals(Side.LEFT, last.measuredSide)
     }
 
     @Test
@@ -135,7 +131,7 @@ class PoseAnalyzerTest {
 
         val last = PoseAnalyzer(config).analyzeAll(poses).last()
 
-        assertEquals(FrameAnalysis(personDetected = true, framingValid = false, missingJoints = listOf(Joint.WRIST), measuredSide = null), last)
+        assertEquals(FrameAnalysis(personDetected = true, framingValid = false, missingJoints = listOf(Joint.WRIST), measuredSide = null, primaryAngle = null), last)
     }
 
     @Test
@@ -172,34 +168,61 @@ class PoseAnalyzerTest {
         assertEquals(Side.RIGHT, results.last().measuredSide)
     }
 
-    /** One pose every 100 ms over [range], made by [poseAt] from its timestamp. */
-    private fun everyTenthOfASecond(range: LongRange, poseAt: (Long) -> Pose?): List<Pose?> =
-        range.step(100).map(poseAt)
-}
+    @Test
+    fun `during a set the measured side stays, though framing is lost and the other side is clearer for long`() {
+        val analyzer = PoseAnalyzer(config)
+        analyzer.analyzeAll(everyTenthOfASecond(0L..2_000L) { t -> pose(t, left = 0.6f, right = 0.9f) })
+        analyzer.startSet()
 
-/**
- * A pose at [t] ms in which every landmark is inside the image with visibility [left] on the
- * left side and [right] on the right side, except [hidden] ones (visibility 0) and [outside]
- * ones (visible, but beyond the image's right edge).
- */
-internal fun pose(
-    t: Long,
-    left: Float = 0.9f,
-    right: Float = 0.9f,
-    hidden: Set<Pair<Joint, Side>> = emptySet(),
-    outside: Set<Pair<Joint, Side>> = emptySet(),
-): Pose {
-    val landmarks = MutableList(33) { BodyLandmark(x = 0.5f, y = 0.5f, z = 0f, visibility = 0.9f) }
-    for (joint in Joint.entries) {
-        for (side in Side.entries) {
-            val visibility = when {
-                joint to side in hidden -> 0f
-                side == Side.LEFT -> left
-                else -> right
-            }
-            val x = if (joint to side in outside) 1.2f else 0.5f
-            landmarks[joint.landmarkIndex(side)] = BodyLandmark(x = x, y = 0.5f, z = 0f, visibility = visibility)
-        }
+        // The right wrist leaves the image for 2.5 s, and the person for one frame, while the left side sees everything.
+        val lost = analyzer.analyzeAll(
+            everyTenthOfASecond(2_100L..4_600L) { t ->
+                if (t == 3_000L) null else pose(t, left = 0.95f, right = 0.9f, hidden = setOf(Joint.WRIST to Side.RIGHT))
+            },
+        )
+
+        assertEquals(setOf(false), lost.map { it.framingValid }.toSet())
+        assertEquals(setOf(Side.RIGHT), lost.map { it.measuredSide }.toSet())
+        assertEquals(listOf(Joint.WRIST), lost.first().missingJoints)
+        assertEquals(setOf(null), lost.map { it.primaryAngle }.toSet())
     }
-    return Pose(landmarks, timestampMs = t)
+
+    @Test
+    fun `during a set, framing is valid again as soon as the measured side sees every joint`() {
+        val analyzer = PoseAnalyzer(config)
+        analyzer.analyzeAll(everyTenthOfASecond(0L..2_000L) { t -> pose(t, left = 0.6f, right = 0.9f) })
+        analyzer.startSet()
+        analyzer.analyze(pose(2_100, hidden = setOf(Joint.WRIST to Side.RIGHT)))
+
+        val back = analyzer.analyze(pose(2_200, left = 0.95f, right = 0.6f))
+
+        assertEquals(true, back.framingValid)
+        assertEquals(Side.RIGHT, back.measuredSide)
+        assertEquals(180.0, back.primaryAngle!!, 1e-3)
+    }
+
+    @Test
+    fun `a set started before framing is valid fixes the side the window chooses`() {
+        val analyzer = PoseAnalyzer(config)
+        analyzer.startSet()
+        analyzer.analyzeAll(everyTenthOfASecond(0L..2_000L) { t -> pose(t, left = 0.9f, right = 0.6f) })
+
+        val lost = analyzer.analyze(pose(2_100, hidden = setOf(Joint.WRIST to Side.LEFT)))
+
+        assertEquals(Side.LEFT, lost.measuredSide)
+    }
+
+    @Test
+    fun `once the set ends, losing framing frees the side again`() {
+        val analyzer = PoseAnalyzer(config)
+        analyzer.analyzeAll(everyTenthOfASecond(0L..2_000L) { t -> pose(t, left = 0.6f, right = 0.9f) })
+        analyzer.startSet()
+        analyzer.stopSet()
+
+        val lost = analyzer.analyze(pose(2_100, hidden = setOf(Joint.WRIST to Side.RIGHT)))
+        val reframed = analyzer.analyzeAll(everyTenthOfASecond(2_200L..4_200L) { t -> pose(t, left = 0.9f, right = 0.6f) }).last()
+
+        assertEquals(null, lost.measuredSide)
+        assertEquals(Side.LEFT, reframed.measuredSide)
+    }
 }

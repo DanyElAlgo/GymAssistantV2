@@ -11,7 +11,8 @@ sealed class AnalysisEvent {
   final int emittedAtMs;
 }
 
-/// `framing`, whenever the framing check's result changes during P08 (HU-10).
+/// `framing`, whenever the framing check's result changes: in P08 (HU-10), and in P09 when
+/// framing is lost or regained during the set.
 final class FramingEvent extends AnalysisEvent {
   const FramingEvent({
     required super.emittedAtMs,
@@ -30,7 +31,8 @@ final class FramingEvent extends AnalysisEvent {
   /// The required joints the camera does not see; all of them when no person is detected.
   final List<Joint> missingJoints;
 
-  /// The side the exercise is measured on; known only while [isValid].
+  /// The side the exercise is measured on: known while [isValid], and during a set it stays
+  /// fixed even while framing is lost (ADR-0012).
   final Side? measuredSide;
 
   @override

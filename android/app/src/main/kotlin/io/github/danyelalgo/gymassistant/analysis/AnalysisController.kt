@@ -51,7 +51,10 @@ class AnalysisController(
     private var rules: Rules? = null
 
     // Replaced on the main thread, used on MediaPipe's thread.
-    @Volatile private var framing: FramingSession? = null
+    @Volatile private var session: AnalysisSession? = null
+
+    // The session whose set is running, between startSet and stopSet; set on the main thread.
+    @Volatile private var activeSet: AnalysisSession? = null
 
     @Volatile private var analysisSize: Size? = null
     @Volatile private var lastFps: Double? = null
@@ -64,18 +67,32 @@ class AnalysisController(
         this.view = view
     }
 
+    /**
+     * The camera view went away. Leaving P08 or P09 releases the camera, except while a set is
+     * running: P08 starts the set before handing over to P09, whose own view may attach before
+     * or after P08's leaves, and P09 releases the camera when it closes.
+     */
     fun detach(view: CameraPreviewView) {
         if (this.view !== view) return
-        releaseCamera()
+        if (activeSet == null) releaseCamera()
         this.view = null
     }
 
-    /** Starts capture into the attached camera view; fails with a channel error code. */
+    /**
+     * Starts capture into the attached camera view; fails with a channel error code. When the
+     * camera is already running, as when P09 takes over from P08, the preview moves into the
+     * attached view, and the framing and its measured side carry on; CameraX reconfigures its
+     * streams, so a few frames may be skipped.
+     */
     fun startCamera(onDone: (errorCode: String?, message: String?) -> Unit) {
         if (ContextCompat.checkSelfPermission(activity, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             return onDone(CAMERA_PERMISSION, "Camera permission not granted")
         }
         val view = view ?: return onDone(CAMERA_IN_USE, "No camera view is attached")
+        capture?.takeIf { it.isRunning }?.let { running ->
+            running.showIn(view.previewView)
+            return onDone(null, null)
+        }
         val generation = ++cameraGeneration
         val providerFuture = ProcessCameraProvider.getInstance(activity)
         providerFuture.addListener({
@@ -103,29 +120,48 @@ class AnalysisController(
      * refused, never replaced by other values (ADR-0006).
      */
     fun checkFraming(exerciseCode: String, rulesVersion: String, onDone: (errorCode: String?, message: String?) -> Unit) {
-        val exercise = Exercise.fromCode(exerciseCode) ?: return onDone(UNKNOWN_EXERCISE, "Unknown exercise $exerciseCode")
-        val rules = try {
-            rules?.takeIf { it.version == rulesVersion } ?: loadRules(rulesVersion).also { rules = it }
-        } catch (exception: InvalidRulesException) {
-            Log.e(TAG, "Invalid rules file for version $rulesVersion", exception)
-            return onDone(INVALID_CONFIG, exception.message)
-        } catch (exception: IOException) {
-            Log.e(TAG, "Could not read the rules file for version $rulesVersion", exception)
-            return onDone(INVALID_CONFIG, exception.message)
-        }
-        framing = FramingSession(PoseAnalyzer(rules.forExercise(exercise)))
+        val config = configFor(exerciseCode, rulesVersion, onDone) ?: return
+        activeSet = null
+        session = AnalysisSession(config)
         onDone(null, null)
+    }
+
+    /**
+     * Diseño §11.4 `startSet`: fixes the measured side until [stopSet] (ADR-0012), and keeps the
+     * camera running while P09 takes over from P08 (see [detach]). The set goes on with the
+     * framing check P08 started when it is for the same exercise and rules, so the side chosen
+     * there is the one measured; otherwise it starts its own. Fails like [checkFraming]. F1 has
+     * no alerts yet, so silent mode changes nothing.
+     */
+    fun startSet(exerciseCode: String, rulesVersion: String, onDone: (errorCode: String?, message: String?) -> Unit) {
+        val config = configFor(exerciseCode, rulesVersion, onDone) ?: return
+        val session = this.session?.takeIf { it.config == config } ?: AnalysisSession(config).also { this.session = it }
+        synchronized(session) { session.analyzer.startSet() }
+        activeSet = session
+        onDone(null, null)
+    }
+
+    /**
+     * Diseño §11.4 `stopSet`: ends the set and returns its repetition counts, which stay at
+     * zero until the repetition state machine arrives in F2. Fails with `NO_ACTIVE_SET`.
+     */
+    fun stopSet(onDone: (summary: Map<String, Int>?, errorCode: String?, message: String?) -> Unit) {
+        val session = activeSet ?: return onDone(null, NO_ACTIVE_SET, "No set is running")
+        synchronized(session) { session.analyzer.stopSet() }
+        activeSet = null
+        onDone(mapOf("total_repetitions" to 0, "correct_repetitions" to 0), null, null)
     }
 
     fun releaseCamera() {
         cameraGeneration++
-        framing = null
+        activeSet = null
+        session = null
         stopMeasuring()
         measuring = false
         capture?.stop()
         requestedVariant = null
         analysisExecutor.execute { estimator.close() }
-        view?.skeleton?.show(null, null, null)
+        view?.skeleton?.show(null, null, null, null)
         analysisSize = null
     }
 
@@ -164,15 +200,52 @@ class AnalysisController(
         val clock = capture?.clockMs ?: return
         synchronized(measurementLock) { monitor?.recordFrame(capturedAtMs, analyzedAtMs = clock()) }
         val size = analysisSize
-        mainHandler.post { view?.skeleton?.show(pose, size, capture?.previewSize) }
+        val session = this.session
+        val result = session?.let { synchronized(it) { it.analyzer.analyze(pose) } }
+        // The primary angle never crosses the channel (ADR-0004): during a set, the camera view
+        // draws it beside its joint, in the research build only.
+        val angle = if (session != null && session === activeSet) result?.let { primaryAngleOf(session, it) } else null
+        mainHandler.post { view?.skeleton?.show(pose, size, capture?.previewSize, angle) }
 
-        val session = framing ?: return
-        val result = session.analyzer.analyze(pose)
-        if (result != session.lastResult) {
-            session.lastResult = result
-            // A session replaced or released meanwhile no longer speaks for P08.
-            mainHandler.post { if (framing === session) emitter.emitFraming(result) }
+        if (session == null || result == null) return
+        // The angle changes every frame; framing is reported only when it changes.
+        val framingResult = result.copy(primaryAngle = null)
+        if (framingResult != session.lastResult) {
+            session.lastResult = framingResult
+            // A session replaced or released meanwhile no longer speaks for P08 or P09.
+            mainHandler.post { if (this.session === session) emitter.emitFraming(framingResult) }
         }
+    }
+
+    private fun primaryAngleOf(session: AnalysisSession, result: FrameAnalysis): PrimaryAngleReading? {
+        val degrees = result.primaryAngle ?: return null
+        val side = result.measuredSide ?: return null
+        return PrimaryAngleReading(degrees, session.config.exercise.primaryAngle.vertex.landmarkIndex(side))
+    }
+
+    /**
+     * The configuration of [exerciseCode] in the rules file of [rulesVersion], or null after
+     * failing [onDone] with `UNKNOWN_EXERCISE` or `INVALID_CONFIG`. A missing or invalid file is
+     * refused, never replaced by other values (ADR-0006).
+     */
+    private fun configFor(exerciseCode: String, rulesVersion: String, onDone: (errorCode: String?, message: String?) -> Unit): ExerciseConfig? {
+        val exercise = Exercise.fromCode(exerciseCode)
+        if (exercise == null) {
+            onDone(UNKNOWN_EXERCISE, "Unknown exercise $exerciseCode")
+            return null
+        }
+        val rules = try {
+            rules?.takeIf { it.version == rulesVersion } ?: loadRules(rulesVersion).also { rules = it }
+        } catch (exception: InvalidRulesException) {
+            Log.e(TAG, "Invalid rules file for version $rulesVersion", exception)
+            onDone(INVALID_CONFIG, exception.message)
+            return null
+        } catch (exception: IOException) {
+            Log.e(TAG, "Could not read the rules file for version $rulesVersion", exception)
+            onDone(INVALID_CONFIG, exception.message)
+            return null
+        }
+        return rules.forExercise(exercise)
     }
 
     /** The shipped rules file of [version], from the Flutter assets. */
@@ -225,8 +298,13 @@ class AnalysisController(
         }
     }
 
-    /** The framing check of one exercise; only MediaPipe's thread touches its state. */
-    private class FramingSession(val analyzer: PoseAnalyzer) {
+    /**
+     * The analysis of one exercise, from the framing check through its sets. The analyzer is
+     * locked on the session, since sets start and stop on the main thread; only MediaPipe's
+     * thread touches [lastResult].
+     */
+    private class AnalysisSession(val config: ExerciseConfig) {
+        val analyzer = PoseAnalyzer(config)
         var lastResult: FrameAnalysis? = null
     }
 
@@ -235,6 +313,7 @@ class AnalysisController(
         const val CAMERA_IN_USE = "CAMERA_IN_USE"
         const val UNKNOWN_EXERCISE = "UNKNOWN_EXERCISE"
         const val INVALID_CONFIG = "INVALID_CONFIG"
+        const val NO_ACTIVE_SET = "NO_ACTIVE_SET"
         private const val TAG = "AnalysisController"
         private const val SAMPLE_PERIOD_MS = 1_000L
     }

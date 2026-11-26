@@ -25,7 +25,7 @@ class RulesLoaderTest {
     }
 
     @Test
-    fun `the shipped provisional rules file loads with side-less joints and the 2 s framing window`() {
+    fun `the shipped provisional rules file loads with side-less joints, the 2 s framing window and the 1€ filter`() {
         val json = File(rulesDir, "rules_v0.1.0.json").readText()
 
         val rules = RulesLoader.parse(json, expectedVersion = "0.1.0")
@@ -38,6 +38,8 @@ class RulesLoaderTest {
                 requiredJoints = listOf(Joint.SHOULDER, Joint.ELBOW, Joint.WRIST),
                 minVisibility = 0.5f,
                 minValidFramingMs = 2_000,
+                // The starting values Casiez et al. (2012) suggest, until F4 calibrates them.
+                filter = OneEuroParameters(minCutoffHz = 1.0, beta = 0.0, dCutoffHz = 1.0),
             ),
             rules.forExercise(Exercise.LAT_PULLDOWN),
         )
@@ -103,6 +105,27 @@ class RulesLoaderTest {
     }
 
     @Test
+    fun `a file without the 1€ filter parameters is rejected`() {
+        assertRejected(validRules.replace(Regex(""""one_euro_filter": \{[^}]*},"""), ""))
+    }
+
+    @Test
+    fun `a filter parameter left null is rejected`() {
+        assertRejected(validRules.replace("\"beta\": 0.0", "\"beta\": null"))
+    }
+
+    @Test
+    fun `a filter cutoff that is not positive is rejected`() {
+        assertRejected(validRules.replace("\"min_cutoff_hz\": 1.0", "\"min_cutoff_hz\": 0"))
+        assertRejected(validRules.replace("\"d_cutoff_hz\": 1.0", "\"d_cutoff_hz\": -1"))
+    }
+
+    @Test
+    fun `a negative filter beta is rejected`() {
+        assertRejected(validRules.replace("\"beta\": 0.0", "\"beta\": -0.1"))
+    }
+
+    @Test
     fun `text that is not JSON is rejected`() {
         assertRejected("{ \"version\": ")
     }
@@ -116,6 +139,11 @@ class RulesLoaderTest {
           "version": "0.1.0",
           "min_visibility": 0.5,
           "min_valid_framing_ms": 2000,
+          "one_euro_filter": {
+            "min_cutoff_hz": 1.0,
+            "beta": 0.0,
+            "d_cutoff_hz": 1.0
+          },
           "exercises": [
             {
               "code": "LEG_PRESS_45",

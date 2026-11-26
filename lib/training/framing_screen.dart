@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../analysis/analysis_bridge.dart';
 import '../analysis/analysis_event.dart';
@@ -10,6 +11,7 @@ import '../analysis/camera_permission.dart';
 import '../analysis/rules_version.dart';
 import '../l10n/app_localizations.dart';
 import '../research/research_build.dart';
+import '../routing/app_router.dart';
 import 'body_presentation.dart';
 import 'exercise.dart';
 import 'exercise_presentation.dart';
@@ -21,7 +23,8 @@ import 'portrait_lock.dart';
 ///
 /// The camera permission is asked with an explanation first; if it is denied, the screen
 /// leads to the system settings. The screen stays in portrait, and the camera is released
-/// when the user leaves.
+/// when the user leaves, except towards P09, which takes the running camera over so the
+/// framing and its measured side carry into the set.
 class FramingScreen extends ConsumerStatefulWidget {
   const FramingScreen({super.key, required this.exercise});
 
@@ -39,6 +42,12 @@ class _FramingScreenState extends ConsumerState<FramingScreen> with WidgetsBindi
   late final StreamSubscription<AnalysisEvent> _events;
   var _stage = _Stage.checkingPermission;
   var _cameraStarted = false;
+
+  /// Whether the start button was tapped, so a second tap starts no second set.
+  var _startingSet = false;
+
+  /// Whether P09 took over the camera, which this screen must then leave running.
+  var _handedOver = false;
 
   /// The latest framing result; null until the first one arrives.
   FramingEvent? _framing;
@@ -59,7 +68,7 @@ class _FramingScreenState extends ConsumerState<FramingScreen> with WidgetsBindi
   void dispose() {
     _events.cancel();
     WidgetsBinding.instance.removeObserver(this);
-    if (_cameraStarted) _bridge.releaseCamera();
+    if (_cameraStarted && !_handedOver) _bridge.releaseCamera();
     super.dispose();
   }
 
@@ -113,6 +122,24 @@ class _FramingScreenState extends ConsumerState<FramingScreen> with WidgetsBindi
     }
   }
 
+  /// Starts the set (DS-01) and hands the running camera over to P09.
+  Future<void> _openSet() async {
+    if (_startingSet) return;
+    _startingSet = true;
+    try {
+      // F1 has no silent mode yet (HU-20 arrives in F2).
+      await _bridge.startSet(exercise: widget.exercise, silentMode: false, rulesVersion: activeRulesVersion);
+    } on AnalysisException {
+      if (mounted) setState(() => _stage = _Stage.analysisUnavailable);
+      return;
+    }
+    // Left meanwhile: dispose releases the camera, which ends the set too.
+    if (!mounted) return;
+    _handedOver = true;
+    // P09 replaces P08: going back from the set leads to P06, not to the framing check.
+    context.pushReplacement(AppRoutes.set(widget.exercise));
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -159,7 +186,7 @@ class _FramingScreenState extends ConsumerState<FramingScreen> with WidgetsBindi
                   child: SafeArea(
                     top: false,
                     minimum: const EdgeInsets.all(16),
-                    child: _FramingStatus(framing: _framing),
+                    child: _FramingStatus(framing: _framing, onStart: _openSet),
                   ),
                 ),
               ],
@@ -172,9 +199,10 @@ class _FramingScreenState extends ConsumerState<FramingScreen> with WidgetsBindi
 
 /// What the framing check says, and the start button it unlocks.
 class _FramingStatus extends StatelessWidget {
-  const _FramingStatus({required this.framing});
+  const _FramingStatus({required this.framing, required this.onStart});
 
   final FramingEvent? framing;
+  final VoidCallback onStart;
 
   @override
   Widget build(BuildContext context) {
@@ -183,10 +211,7 @@ class _FramingStatus extends StatelessWidget {
     final framing = this.framing;
     final message = switch (framing) {
       null => null,
-      FramingEvent(personDetected: false) => l10n.framingNoPerson,
-      FramingEvent(missingJoints: final missing) when missing.isNotEmpty =>
-        l10n.framingMissingJoints(missing.map((joint) => joint.localizedName(l10n)).join(', ')),
-      FramingEvent(isValid: false) => l10n.framingHold,
+      FramingEvent(isValid: false) => framing.problem(l10n) ?? l10n.framingHold,
       FramingEvent() => l10n.framingReady,
     };
     final ready = framing?.isValid ?? false;
@@ -201,8 +226,7 @@ class _FramingStatus extends StatelessWidget {
               Text(message, textAlign: TextAlign.center, style: theme.textTheme.titleMedium),
               const SizedBox(height: 12),
             ],
-            // P09 and the set arrive with SCRUM-51.
-            FilledButton(onPressed: ready ? () {} : null, child: Text(l10n.startSet)),
+            FilledButton(onPressed: ready ? onStart : null, child: Text(l10n.startSet)),
           ],
         ),
       ),
