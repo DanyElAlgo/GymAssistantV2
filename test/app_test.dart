@@ -1,18 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gymassistant/app.dart';
 import 'package:gymassistant/training/exercise.dart';
 import 'package:gymassistant/training/framing_screen.dart';
 
-/// Starts the app as a phone set to [locale] would.
-Future<void> pumpApp(WidgetTester tester, {Locale locale = const Locale('es')}) async {
-  tester.platformDispatcher.localesTestValue = [locale];
-  addTearDown(tester.platformDispatcher.clearLocalesTestValue);
-  await tester.pumpWidget(const ProviderScope(child: GymAssistantApp()));
-  await tester.pumpAndSettle();
-}
+import 'support/test_app.dart';
 
 /// Fails unless the picture found by [finder] exists in the bundle and parses.
 /// Widget tests never finish loading SVGs on their own, so a missing file would

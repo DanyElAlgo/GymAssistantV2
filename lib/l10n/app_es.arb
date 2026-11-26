@@ -35,5 +35,52 @@
   "exerciseLegExtension": "Extensión de cuádriceps",
   "@exerciseLegExtension": {
     "description": "Name of the LEG_EXTENSION exercise."
+  },
+  "cameraPermissionExplanation": "GymAssistant usa la cámara frontal para ver tus articulaciones mientras entrenas. Las imágenes se analizan en el teléfono y nunca se guardan ni se envían.",
+  "@cameraPermissionExplanation": {
+    "description": "P08, shown before the system asks for the camera permission. Must keep the promise that images never leave the phone (RNF-07)."
+  },
+  "cameraPermissionAllow": "Permitir cámara",
+  "@cameraPermissionAllow": {
+    "description": "Button that shows the system camera permission dialog."
+  },
+  "cameraPermissionDenied": "Sin la cámara, GymAssistant no puede analizarte. Actívala en los ajustes del sistema, en Permisos › Cámara.",
+  "@cameraPermissionDenied": {
+    "description": "P08, shown when the camera permission was denied."
+  },
+  "cameraPermissionOpenSettings": "Abrir ajustes",
+  "@cameraPermissionOpenSettings": {
+    "description": "Button that opens the app's page in the system settings."
+  },
+  "cameraUnavailable": "No se pudo abrir la cámara. Cierra las otras apps que la estén usando e inténtalo de nuevo.",
+  "@cameraUnavailable": {
+    "description": "P08, shown when the camera is in use or fails to start."
+  },
+  "retry": "Reintentar",
+  "@retry": {
+    "description": "Button that repeats a failed action."
+  },
+  "debugPanelFps": "{fps} fps",
+  "@debugPanelFps": {
+    "description": "Research build debug panel: frames analysed per second (RNF-02).",
+    "placeholders": {
+      "fps": {
+        "type": "double",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "debugPanelLatency": "Latencia mediana: {latency} ms",
+  "@debugPanelLatency": {
+    "description": "Research build debug panel: median latency from frame capture to Flutter.",
+    "placeholders": {
+      "latency": {
+        "type": "int"
+      }
+    }
+  },
+  "debugPanelLatencyPending": "Latencia mediana: —",
+  "@debugPanelLatencyPending": {
+    "description": "Research build debug panel, before any frame was analysed."
   }
 }

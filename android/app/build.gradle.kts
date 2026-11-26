@@ -39,11 +39,23 @@ android {
         }
     }
 
+    // The pose models live in the repo's models/ folder, shared with the desktop video tool
+    // (ADR-0014). MediaPipe maps them straight from the APK, so they must stay uncompressed.
+    sourceSets {
+        getByName("main").assets.srcDir("../../models")
+    }
+    androidResources {
+        noCompress += "task"
+        // aapt's default ignore list, plus the models' README.
+        ignoreAssetsPattern = "!.svn:!.git:!.ds_store:!*.scc:.*:<dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~:!README.md"
+    }
+
     buildTypes {
         release {
             // TODO: Add a release signing config before publishing to Google Play.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            proguardFiles("proguard-rules.pro")
         }
     }
 }
@@ -56,6 +68,10 @@ kotlin {
 
 dependencies {
     implementation(project(":analysis-core"))
+    implementation("androidx.camera:camera-camera2:1.4.2")
+    implementation("androidx.camera:camera-lifecycle:1.4.2")
+    implementation("androidx.camera:camera-view:1.4.2")
+    implementation("com.google.mediapipe:tasks-vision:0.10.26")
 }
 
 flutter {
