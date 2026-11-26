@@ -34,7 +34,7 @@ class EventEmitter : EventChannel.StreamHandler {
             mapOf(
                 "person_detected" to result.personDetected,
                 "is_valid" to result.framingValid,
-                "missing_landmarks" to result.missingJoints.map { it.code },
+                "missing_joints" to result.missingJoints.map { it.code },
                 "measured_side" to result.measuredSide?.code,
             ),
         )

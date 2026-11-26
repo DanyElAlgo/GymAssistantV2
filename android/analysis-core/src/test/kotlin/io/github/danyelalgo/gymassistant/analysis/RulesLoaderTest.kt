@@ -1,17 +1,34 @@
 package io.github.danyelalgo.gymassistant.analysis
 
+import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.io.File
 
 class RulesLoaderTest {
 
+    private val rulesDir = File(System.getProperty("rulesDir"))
+
+    @Test
+    fun `every rules file the app ships is valid and declares the version in its name`() {
+        val shipped = rulesDir.listFiles { file -> file.name.endsWith(".json") }.orEmpty()
+        assertTrue(shipped.isNotEmpty(), "No rules files in $rulesDir")
+
+        for (file in shipped) {
+            val version = Regex("""rules_v(.+)\.json""").matchEntire(file.name)?.groupValues?.get(1)
+            assertNotNull(version, "${file.name} is not named rules_v<version>.json")
+            assertDoesNotThrow({ RulesLoader.parse(file.readText(), expectedVersion = version!!) }, file.name)
+        }
+    }
+
     @Test
     fun `the shipped provisional rules file loads with side-less joints and the 2 s framing window`() {
-        val json = File(System.getProperty("rulesDir"), "rules_v0.1.0.json").readText()
+        val json = File(rulesDir, "rules_v0.1.0.json").readText()
 
-        val rules = RulesLoader.parse(json)
+        val rules = RulesLoader.parse(json, expectedVersion = "0.1.0")
 
         assertEquals("0.1.0", rules.version)
         assertEquals(
@@ -30,7 +47,12 @@ class RulesLoaderTest {
 
     @Test
     fun `the example the rejection tests alter is itself valid`() {
-        RulesLoader.parse(validRules)
+        RulesLoader.parse(validRules, expectedVersion = "0.1.0")
+    }
+
+    @Test
+    fun `a file that declares another version than the one asked for is rejected`() {
+        assertThrows<InvalidRulesException> { RulesLoader.parse(validRules, expectedVersion = "0.2.0") }
     }
 
     @Test
@@ -86,7 +108,7 @@ class RulesLoaderTest {
     }
 
     private fun assertRejected(json: String) {
-        assertThrows<InvalidRulesException> { RulesLoader.parse(json) }
+        assertThrows<InvalidRulesException> { RulesLoader.parse(json, expectedVersion = "0.1.0") }
     }
 
     private val validRules = """
@@ -97,15 +119,15 @@ class RulesLoaderTest {
           "exercises": [
             {
               "code": "LEG_PRESS_45",
-              "required_landmarks": ["hip", "knee", "ankle"]
+              "required_joints": ["hip", "knee", "ankle"]
             },
             {
               "code": "LAT_PULLDOWN",
-              "required_landmarks": ["shoulder", "elbow", "wrist"]
+              "required_joints": ["shoulder", "elbow", "wrist"]
             },
             {
               "code": "LEG_EXTENSION",
-              "required_landmarks": ["hip", "knee", "ankle"]
+              "required_joints": ["hip", "knee", "ankle"]
             }
           ]
         }

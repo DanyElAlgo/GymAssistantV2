@@ -45,9 +45,9 @@ void main() {
 
   test('framing events arrive typed, with the missing joints by name and the measured side', () async {
     emit([
-      {'type': 'framing', 't': 1700000000100, 'person_detected': false, 'is_valid': false, 'missing_landmarks': ['shoulder', 'elbow', 'wrist'], 'measured_side': null},
-      {'type': 'framing', 't': 1700000000200, 'person_detected': true, 'is_valid': false, 'missing_landmarks': ['knee'], 'measured_side': null},
-      {'type': 'framing', 't': 1700000002300, 'person_detected': true, 'is_valid': true, 'missing_landmarks': <Object?>[], 'measured_side': 'right'},
+      {'type': 'framing', 't': 1700000000100, 'person_detected': false, 'is_valid': false, 'missing_joints': ['shoulder', 'elbow', 'wrist'], 'measured_side': null},
+      {'type': 'framing', 't': 1700000000200, 'person_detected': true, 'is_valid': false, 'missing_joints': ['knee'], 'measured_side': null},
+      {'type': 'framing', 't': 1700000002300, 'person_detected': true, 'is_valid': true, 'missing_joints': <Object?>[], 'measured_side': 'right'},
     ]);
 
     final received = await ChannelAnalysisBridge().events.toList();
@@ -64,17 +64,17 @@ void main() {
     ]);
   });
 
-  test('checkFraming sends the exercise code', () async {
+  test('checkFraming sends the exercise code and the rules version', () async {
     final calls = <MethodCall>[];
     answer((call) async {
       calls.add(call);
       return null;
     });
 
-    await ChannelAnalysisBridge().checkFraming(Exercise.legPress45);
+    await ChannelAnalysisBridge().checkFraming(exercise: Exercise.legPress45, rulesVersion: '0.1.0');
 
     expect(calls.single.method, 'checkFraming');
-    expect(calls.single.arguments, {'exercise': 'LEG_PRESS_45'});
+    expect(calls.single.arguments, {'exercise': 'LEG_PRESS_45', 'rulesVersion': '0.1.0'});
   });
 
   test('a native refusal arrives as an AnalysisException with its contract code', () async {

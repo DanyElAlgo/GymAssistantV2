@@ -7,6 +7,7 @@ import '../analysis/analysis_bridge.dart';
 import '../analysis/analysis_event.dart';
 import '../analysis/analysis_providers.dart';
 import '../analysis/camera_permission.dart';
+import '../analysis/rules_version.dart';
 import '../l10n/app_localizations.dart';
 import '../research/research_build.dart';
 import 'body_presentation.dart';
@@ -105,7 +106,7 @@ class _FramingScreenState extends ConsumerState<FramingScreen> with WidgetsBindi
       return;
     }
     try {
-      await _bridge.checkFraming(widget.exercise);
+      await _bridge.checkFraming(exercise: widget.exercise, rulesVersion: activeRulesVersion);
     } on AnalysisException {
       // An invalid rules file, or an exercise the native side does not know: nothing to retry.
       if (mounted) setState(() => _stage = _Stage.analysisUnavailable);

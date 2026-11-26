@@ -22,7 +22,10 @@ class AnalysisChannel private constructor(private val controller: AnalysisContro
                 controller.releaseCamera()
                 result.success(null)
             }
-            "checkFraming" -> controller.checkFraming(call.argument<String>("exercise").orEmpty()) { errorCode, message ->
+            "checkFraming" -> controller.checkFraming(
+                exerciseCode = call.argument<String>("exercise").orEmpty(),
+                rulesVersion = call.argument<String>("rulesVersion").orEmpty(),
+            ) { errorCode, message ->
                 if (errorCode == null) result.success(null) else result.error(errorCode, message, null)
             }
             "capabilities" -> result.success(controller.capabilities())
