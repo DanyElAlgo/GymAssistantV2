@@ -3,19 +3,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gymassistant/analysis/analysis_providers.dart';
 import 'package:gymassistant/app.dart';
+import 'package:gymassistant/preferences/preferences_service.dart';
 import 'package:gymassistant/research/debug_panel.dart';
 import 'package:gymassistant/research/research_build.dart';
 
 import 'fakes.dart';
 
 /// Starts the app as a phone set to [locale] would, with fakes instead of native code.
-/// [researchBuild] adds what only the research build contains; [nowMs] is the wall clock the
-/// app reads.
+/// [preferences] are the phone's saved options, empty by default; [researchBuild] adds what
+/// only the research build contains; [nowMs] is the wall clock the app reads.
 Future<void> pumpApp(
   WidgetTester tester, {
   Locale locale = const Locale('es'),
   FakeAnalysisBridge? bridge,
   FakeCameraPermission? permission,
+  FakePreferencesService? preferences,
   bool researchBuild = false,
   int nowMs = 0,
 }) async {
@@ -25,6 +27,7 @@ Future<void> pumpApp(
     overrides: [
       analysisBridgeProvider.overrideWithValue(bridge ?? FakeAnalysisBridge()),
       cameraPermissionProvider.overrideWithValue(permission ?? FakeCameraPermission()),
+      preferencesServiceProvider.overrideWithValue(preferences ?? FakePreferencesService()),
       debugPanelProvider.overrideWithValue(
         researchBuild ? (events, wallClockMs) => DebugPanel(events: events, wallClockMs: wallClockMs) : null,
       ),

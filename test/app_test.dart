@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gymassistant/training/camera_guide_screen.dart';
 import 'package:gymassistant/training/exercise.dart';
 import 'package:gymassistant/training/framing_screen.dart';
 
@@ -59,21 +60,33 @@ void main() {
     }
   });
 
-  // Until the camera guide (P07) exists, choosing goes straight to P08.
-  testWidgets('choosing an exercise opens its framing check without the bottom bar', (tester) async {
+  testWidgets('choosing an exercise opens its camera guide, then its framing check, without the bottom bar',
+      (tester) async {
     await pumpApp(tester);
 
     await tester.tap(find.text('Jalón al pecho'));
     await tester.pumpAndSettle();
 
+    expect(tester.widget<CameraGuideScreen>(find.byType(CameraGuideScreen)).exercise, Exercise.latPulldown);
+    expect(find.byType(NavigationBar), findsNothing);
+
+    await tester.tap(find.text('Listo, abrir cámara'));
+    await tester.pumpAndSettle();
+
     expect(tester.widget<FramingScreen>(find.byType(FramingScreen)).exercise, Exercise.latPulldown);
     expect(find.byType(NavigationBar), findsNothing);
 
-    // Android's Back button (Diseño §10.1).
+    // Android's Back button goes back one screen at a time (Diseño §10.1).
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 
     expect(find.byType(FramingScreen), findsNothing);
+    expect(find.byType(CameraGuideScreen), findsOneWidget);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CameraGuideScreen), findsNothing);
     expect(find.text('Elige un ejercicio'), findsOneWidget);
     expect(find.byType(NavigationBar), findsOneWidget);
   });
