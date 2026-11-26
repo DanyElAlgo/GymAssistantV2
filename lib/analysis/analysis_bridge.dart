@@ -22,10 +22,14 @@ abstract interface class AnalysisBridge {
   /// [AnalysisErrorCode.invalidConfig] when that rules file is missing or invalid.
   Future<void> checkFraming({required Exercise exercise, required String rulesVersion});
 
-  /// Starts a set (SCRUM-51).
+  /// Starts a set of [exercise] with the thresholds of [rulesVersion]: from now until [stopSet]
+  /// the measured side stays fixed, and `framing` reports when framing is lost or regained.
+  /// Throws [AnalysisException] like [checkFraming].
   Future<void> startSet({required Exercise exercise, required bool silentMode, required String rulesVersion});
 
-  /// Ends the set and returns the native repetition count, as a cross-check (SCRUM-51).
+  /// Ends the set and returns the native repetition count, as a cross-check; zero until the
+  /// repetition count arrives in F2. Throws [AnalysisException] with
+  /// [AnalysisErrorCode.noActiveSet] when no set is running.
   Future<SetSummary> stopSet();
 
   /// Stops the camera and frees the pose model.

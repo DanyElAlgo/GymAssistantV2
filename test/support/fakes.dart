@@ -27,6 +27,15 @@ class FakeAnalysisBridge implements AnalysisBridge {
   /// Thrown by [checkFraming], as the native side would.
   AnalysisException? checkFramingError;
 
+  /// What [startSet] was asked for, in order.
+  final startSetCalls = <({Exercise exercise, bool silentMode, String rulesVersion})>[];
+
+  /// How many times [stopSet] was called.
+  int stopSetCalls = 0;
+
+  /// Thrown by [startSet], as the native side would.
+  AnalysisException? startSetError;
+
   void emit(AnalysisEvent event) => _events.add(event);
 
   @override
@@ -56,10 +65,17 @@ class FakeAnalysisBridge implements AnalysisBridge {
   }
 
   @override
-  Future<void> startSet({required Exercise exercise, required bool silentMode, required String rulesVersion}) async {}
+  Future<void> startSet({required Exercise exercise, required bool silentMode, required String rulesVersion}) async {
+    startSetCalls.add((exercise: exercise, silentMode: silentMode, rulesVersion: rulesVersion));
+    final error = startSetError;
+    if (error != null) throw error;
+  }
 
   @override
-  Future<SetSummary> stopSet() async => const SetSummary(totalRepetitions: 0, correctRepetitions: 0);
+  Future<SetSummary> stopSet() async {
+    stopSetCalls++;
+    return const SetSummary(totalRepetitions: 0, correctRepetitions: 0);
+  }
 }
 
 class _FakeCameraView extends StatefulWidget {

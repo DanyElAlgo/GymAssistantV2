@@ -15,7 +15,8 @@ import kotlinx.serialization.json.longOrNull
  *
  * [requiredJoints] are named without a side (ADR-0012). A landmark counts as seen when its
  * visibility is at least [minVisibility], and framing is valid once every required joint has
- * been seen for [minValidFramingMs] without interruption.
+ * been seen for [minValidFramingMs] without interruption. Landmark coordinates are smoothed
+ * with the 1€ filter's [filter] parameters.
  */
 data class ExerciseConfig(
     val version: String,
@@ -23,6 +24,7 @@ data class ExerciseConfig(
     val requiredJoints: List<Joint>,
     val minVisibility: Float,
     val minValidFramingMs: Long,
+    val filter: OneEuroParameters,
 )
 
 /** One rules file: its version and the configuration of every exercise. */
@@ -57,6 +59,15 @@ object RulesLoader {
         if (minVisibility !in 0.0..1.0) throw InvalidRulesException("min_visibility must be between 0 and 1")
         val minValidFramingMs = root.integer("min_valid_framing_ms")
         if (minValidFramingMs <= 0) throw InvalidRulesException("min_valid_framing_ms must be positive")
+        val filter = root.obj("one_euro_filter").let { entry ->
+            OneEuroParameters(
+                minCutoffHz = entry.number("min_cutoff_hz"),
+                beta = entry.number("beta"),
+                dCutoffHz = entry.number("d_cutoff_hz"),
+            )
+        }
+        if (filter.minCutoffHz <= 0 || filter.dCutoffHz <= 0) throw InvalidRulesException("The 1€ filter cutoffs must be positive")
+        if (filter.beta < 0) throw InvalidRulesException("The 1€ filter beta must not be negative")
 
         val exercises = mutableMapOf<Exercise, ExerciseConfig>()
         for (element in root.array("exercises")) {
@@ -75,6 +86,7 @@ object RulesLoader {
                 requiredJoints = joints,
                 minVisibility = minVisibility.toFloat(),
                 minValidFramingMs = minValidFramingMs,
+                filter = filter,
             )
         }
         val absent = Exercise.entries - exercises.keys
@@ -97,6 +109,8 @@ object RulesLoader {
     private fun JsonObject.integer(name: String): Long =
         (field(name) as? JsonPrimitive)?.takeUnless { it.isString }?.longOrNull
             ?: throw InvalidRulesException("Field $name must be an integer")
+
+    private fun JsonObject.obj(name: String): JsonObject = field(name).asObject(name)
 
     private fun JsonObject.array(name: String): JsonArray =
         field(name) as? JsonArray ?: throw InvalidRulesException("Field $name must be a list")

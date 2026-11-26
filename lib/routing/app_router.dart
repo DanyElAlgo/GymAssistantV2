@@ -7,6 +7,7 @@ import '../training/camera_guide_screen.dart';
 import '../training/choose_exercise_screen.dart';
 import '../training/exercise.dart';
 import '../training/framing_screen.dart';
+import '../training/set_screen.dart';
 
 /// Route paths, kept in one place so screens never spell them out.
 abstract final class AppRoutes {
@@ -18,6 +19,9 @@ abstract final class AppRoutes {
 
   /// P08 for [exercise].
   static String framing(Exercise exercise) => '$train/${exercise.code}/framing';
+
+  /// P09 for [exercise].
+  static String set(Exercise exercise) => '$train/${exercise.code}/set';
 }
 
 /// The app's navigation (Diseño §10.1).
@@ -54,6 +58,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     redirect: (context, state) =>
                         _exerciseFromPath(state) == null ? AppRoutes.train : null,
                     builder: (context, state) => FramingScreen(exercise: _exerciseFromPath(state)!),
+                  ),
+                  GoRoute(
+                    path: ':exercise/set',
+                    parentNavigatorKey: rootNavigatorKey,
+                    redirect: (context, state) =>
+                        _exerciseFromPath(state) == null ? AppRoutes.train : null,
+                    builder: (context, state) => SetScreen(exercise: _exerciseFromPath(state)!),
                   ),
                 ],
               ),

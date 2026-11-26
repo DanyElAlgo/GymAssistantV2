@@ -8,15 +8,22 @@ import android.util.Size
 import android.view.View
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarker
 
+/** The filtered primary angle in degrees, and the landmark of the joint it is measured at. */
+data class PrimaryAngleReading(val degrees: Double, val landmarkIndex: Int)
+
 /**
  * Draws the latest pose over the mirrored camera preview, mirrored so it lines up with the
  * user's image (ADR-0011). Each segment fades with its landmarks' visibility; no visibility
- * threshold is applied here, since thresholds belong in the rules file (ADR-0006).
+ * threshold is applied here, since thresholds belong in the rules file (ADR-0006). The primary
+ * angle goes beside its joint through [PrimaryAngleLabel], which draws only in the research
+ * build (ADR-0013).
  */
 class SkeletonOverlayView(context: Context) : View(context) {
     private var pose: Pose? = null
     private var analysisSize: Size? = null
     private var previewSize: Size? = null
+    private var angle: PrimaryAngleReading? = null
+    private val angleLabel = PrimaryAngleLabel(context)
 
     private val density = resources.displayMetrics.density
     private val bonePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -26,11 +33,12 @@ class SkeletonOverlayView(context: Context) : View(context) {
     }
     private val landmarkPaint = Paint(Paint.ANTI_ALIAS_FLAG)
 
-    /** Call on the main thread; a null [pose] clears the skeleton. */
-    fun show(pose: Pose?, analysisSize: Size?, previewSize: Size?) {
+    /** Call on the main thread; a null [pose] clears the skeleton, and a null [angle] its label. */
+    fun show(pose: Pose?, analysisSize: Size?, previewSize: Size?, angle: PrimaryAngleReading?) {
         this.pose = pose
         this.analysisSize = analysisSize
         this.previewSize = previewSize
+        this.angle = angle
         invalidate()
     }
 
@@ -59,6 +67,7 @@ class SkeletonOverlayView(context: Context) : View(context) {
             landmarkPaint.alpha = alphaOf(landmark.visibility)
             canvas.drawCircle(point.x, point.y, 5 * density, landmarkPaint)
         }
+        angle?.let { angleLabel.draw(canvas, points[it.landmarkIndex], it.degrees) }
     }
 
     private fun alphaOf(visibility: Float) = (visibility.coerceIn(0f, 1f) * 255).toInt()

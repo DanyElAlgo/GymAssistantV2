@@ -15,9 +15,7 @@ class AnalysisChannel private constructor(private val controller: AnalysisContro
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
-            "startCamera" -> controller.startCamera { errorCode, message ->
-                if (errorCode == null) result.success(null) else result.error(errorCode, message, null)
-            }
+            "startCamera" -> controller.startCamera(result::complete)
             "releaseCamera" -> {
                 controller.releaseCamera()
                 result.success(null)
@@ -25,11 +23,17 @@ class AnalysisChannel private constructor(private val controller: AnalysisContro
             "checkFraming" -> controller.checkFraming(
                 exerciseCode = call.argument<String>("exercise").orEmpty(),
                 rulesVersion = call.argument<String>("rulesVersion").orEmpty(),
-            ) { errorCode, message ->
-                if (errorCode == null) result.success(null) else result.error(errorCode, message, null)
+                onDone = result::complete,
+            )
+            "startSet" -> controller.startSet(
+                exerciseCode = call.argument<String>("exercise").orEmpty(),
+                rulesVersion = call.argument<String>("rulesVersion").orEmpty(),
+                onDone = result::complete,
+            )
+            "stopSet" -> controller.stopSet { summary, errorCode, message ->
+                if (errorCode == null) result.success(summary) else result.error(errorCode, message, null)
             }
             "capabilities" -> result.success(controller.capabilities())
-            // startSet and stopSet arrive with SCRUM-51.
             else -> result.notImplemented()
         }
     }
@@ -47,4 +51,9 @@ class AnalysisChannel private constructor(private val controller: AnalysisContro
             return controller
         }
     }
+}
+
+/** Answers a command that returns nothing: success, or the channel error [errorCode]. */
+private fun MethodChannel.Result.complete(errorCode: String?, message: String?) {
+    if (errorCode == null) success(null) else error(errorCode, message, null)
 }

@@ -140,6 +140,10 @@
   "@startSet": {
     "description": "P08 button that starts the set; locked until framing is valid."
   },
+  "finishSet": "Terminar",
+  "@finishSet": {
+    "description": "P09 button that ends the set."
+  },
   "analysisConfigInvalid": "No se pudo cargar la configuración del análisis. Reinstala GymAssistant.",
   "@analysisConfigInvalid": {
     "description": "P08, when the rules file is invalid (INVALID_CONFIG)."

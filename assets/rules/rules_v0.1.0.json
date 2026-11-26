@@ -2,6 +2,11 @@
   "version": "0.1.0",
   "min_visibility": 0.5,
   "min_valid_framing_ms": 2000,
+  "one_euro_filter": {
+    "min_cutoff_hz": 1.0,
+    "beta": 0.0,
+    "d_cutoff_hz": 1.0
+  },
   "exercises": [
     {
       "code": "LEG_PRESS_45",

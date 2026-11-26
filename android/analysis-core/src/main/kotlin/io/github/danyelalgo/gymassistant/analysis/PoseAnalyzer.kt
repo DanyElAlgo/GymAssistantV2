@@ -4,14 +4,17 @@ package io.github.danyelalgo.gymassistant.analysis
  * What the analysis found in one frame.
  *
  * [missingJoints] lists, in the rules file's order, the required joints that are not seen;
- * every required joint when no person was detected. [measuredSide] is known only while
- * [framingValid].
+ * every required joint when no person was detected. [measuredSide] is known while
+ * [framingValid], and throughout a set once chosen. [primaryAngle], in degrees, is the
+ * exercise's primary angle on the measured side from filtered coordinates; null while framing
+ * is not valid.
  */
 data class FrameAnalysis(
     val personDetected: Boolean,
     val framingValid: Boolean,
     val missingJoints: List<Joint>,
     val measuredSide: Side?,
+    val primaryAngle: Double?,
 )
 
 /**
@@ -26,18 +29,44 @@ data class FrameAnalysis(
  * measured side counts; a frame in which it misses a joint, or without a person, ends the
  * framing and the side, and the next window starts from scratch.
  *
- * Not thread-safe: feed it from one thread.
+ * During a set, from [startSet] to [stopSet], the measured side stays fixed (ADR-0012): losing
+ * framing keeps it, and framing is valid again in the first frame where that side sees every
+ * required joint. A set started before framing is valid fixes the side its window chooses.
+ *
+ * The primary angle is measured on coordinates smoothed by one 1€ filter per coordinate
+ * ([ExerciseConfig.filter]), in normalised image units; the filters start afresh each time
+ * framing becomes valid.
+ *
+ * Not thread-safe: call it from one thread at a time.
  */
 class PoseAnalyzer(private val config: ExerciseConfig) {
 
     private var window: FramingWindow? = null
     private var measuredSide: Side? = null
+    private var inSet = false
+    private var smoother: AngleSmoother? = null
+
+    /** Fixes the measured side until [stopSet]. */
+    fun startSet() {
+        inSet = true
+    }
+
+    /** Ends the set: the measured side is free again the next time framing is lost. */
+    fun stopSet() {
+        inSet = false
+    }
 
     /** Analyses the next frame; [pose] is null when no person was detected in it. */
     fun analyze(pose: Pose?): FrameAnalysis {
         if (pose == null) {
             loseFraming()
-            return FrameAnalysis(personDetected = false, framingValid = false, missingJoints = config.requiredJoints, measuredSide = null)
+            return FrameAnalysis(
+                personDetected = false,
+                framingValid = false,
+                missingJoints = config.requiredJoints,
+                measuredSide = measuredSide,
+                primaryAngle = null,
+            )
         }
         val candidates = measuredSide?.let(::listOf) ?: Side.entries
         val missingBySide = candidates.associateWith { side -> missingOn(pose, side) }
@@ -45,7 +74,7 @@ class PoseAnalyzer(private val config: ExerciseConfig) {
         if (completeSides.isEmpty()) {
             loseFraming()
             val missing = missingBySide.values.minBy { it.size }
-            return FrameAnalysis(personDetected = true, framingValid = false, missingJoints = missing, measuredSide = null)
+            return FrameAnalysis(personDetected = true, framingValid = false, missingJoints = missing, measuredSide = measuredSide, primaryAngle = null)
         }
 
         if (measuredSide == null) {
@@ -58,7 +87,9 @@ class PoseAnalyzer(private val config: ExerciseConfig) {
                 this.window = null
             }
         }
-        return FrameAnalysis(personDetected = true, framingValid = measuredSide != null, missingJoints = emptyList(), measuredSide = measuredSide)
+        val side = measuredSide
+        val angle = side?.let { (smoother ?: AngleSmoother(it).also { smoother = it }).angle(pose) }
+        return FrameAnalysis(personDetected = true, framingValid = side != null, missingJoints = emptyList(), measuredSide = side, primaryAngle = angle)
     }
 
     /** Analyses [poses] in order, one result per frame. */
@@ -66,7 +97,8 @@ class PoseAnalyzer(private val config: ExerciseConfig) {
 
     private fun loseFraming() {
         window = null
-        measuredSide = null
+        smoother = null
+        if (!inSet) measuredSide = null
     }
 
     private fun missingOn(pose: Pose, side: Side): List<Joint> =
@@ -75,6 +107,32 @@ class PoseAnalyzer(private val config: ExerciseConfig) {
     /** Visible enough, and inside the image: the model also places landmarks it cannot see. */
     private fun isSeen(landmark: BodyLandmark): Boolean =
         landmark.visibility >= config.minVisibility && landmark.x in 0f..1f && landmark.y in 0f..1f
+
+    /** The primary angle on [side], from its three landmarks with each coordinate filtered. */
+    private inner class AngleSmoother(side: Side) {
+        private val landmarks = config.exercise.primaryAngle.let { listOf(it.start, it.vertex, it.end) }
+            .map { joint -> SmoothedLandmark(joint.landmarkIndex(side)) }
+
+        fun angle(pose: Pose): Double {
+            val (start, vertex, end) = landmarks.map { it.at(pose) }
+            return jointAngle(start, vertex, end)
+        }
+    }
+
+    /** One landmark with a 1€ filter on each normalised coordinate. */
+    private inner class SmoothedLandmark(private val index: Int) {
+        private val x = OneEuroFilter(config.filter)
+        private val y = OneEuroFilter(config.filter)
+
+        /** Its filtered position in [pose], in pixels. */
+        fun at(pose: Pose): FramePoint {
+            val landmark = pose.landmarks[index]
+            return FramePoint(
+                x = x.filter(landmark.x.toDouble(), pose.timestampMs) * pose.imageWidth,
+                y = y.filter(landmark.y.toDouble(), pose.timestampMs) * pose.imageHeight,
+            )
+        }
+    }
 
     /**
      * A framing window in progress: the sides that have seen every required joint in all its

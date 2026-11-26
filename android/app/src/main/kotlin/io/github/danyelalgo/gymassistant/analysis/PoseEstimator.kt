@@ -72,7 +72,7 @@ class PoseEstimator(
         variant = null
     }
 
-    private fun onResult(result: PoseLandmarkerResult, @Suppress("UNUSED_PARAMETER") input: MPImage) {
+    private fun onResult(result: PoseLandmarkerResult, input: MPImage) {
         val landmarks = result.landmarks().firstOrNull()
         val pose = landmarks?.let {
             Pose(
@@ -85,6 +85,8 @@ class PoseEstimator(
                     )
                 },
                 timestampMs = result.timestampMs(),
+                imageWidth = input.width,
+                imageHeight = input.height,
             )
         }
         onPose(result.timestampMs(), pose)

@@ -26,6 +26,7 @@ import java.util.concurrent.Executor
  *
  * Analysis frames arrive upright and unmirrored on [analysisExecutor], with their capture time
  * in milliseconds on [clockMs], and are never kept after `onFrame` returns (ADR-0005).
+ * Call [start], [showIn] and [stop] on the main thread.
  */
 class CameraCapture(
     private val cameraProvider: ProcessCameraProvider,
@@ -39,6 +40,12 @@ class CameraCapture(
     /** The preview stream's size, upright; null until started. */
     var previewSize: Size? = null
         private set
+
+    private var preview: Preview? = null
+
+    /** Whether the camera is bound and delivering frames, from [start] until [stop]. */
+    val isRunning: Boolean
+        get() = preview != null
 
     @OptIn(ExperimentalCamera2Interop::class)
     fun start(owner: LifecycleOwner, previewView: PreviewView, onFrame: (frame: Bitmap, capturedAtMs: Long) -> Unit) {
@@ -76,11 +83,21 @@ class CameraCapture(
             val size = info.resolution
             if (info.rotationDegrees % 180 == 0) size else Size(size.height, size.width)
         }
+        this.preview = preview
+    }
+
+    /**
+     * Moves the running preview into [previewView] without stopping the camera, so analysis
+     * goes on uninterrupted while P08 hands over to P09.
+     */
+    fun showIn(previewView: PreviewView) {
+        preview?.surfaceProvider = previewView.surfaceProvider
     }
 
     fun stop() {
         cameraProvider.unbindAll()
         previewSize = null
+        preview = null
     }
 
     private fun resolution(size: Size, aspectRatio: AspectRatioStrategy) = ResolutionSelector.Builder()

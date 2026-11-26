@@ -31,6 +31,7 @@
   "framingHold": "Hold your position…",
   "framingReady": "Ready, you can start",
   "startSet": "Start",
+  "finishSet": "Finish",
   "analysisConfigInvalid": "The analysis settings couldn't be loaded. Reinstall GymAssistant.",
   "jointShoulder": "shoulder",
   "jointElbow": "elbow",
