@@ -149,7 +149,7 @@ class AnalysisController(
         val session = activeSet ?: return onDone(null, NO_ACTIVE_SET, "No set is running")
         synchronized(session) { session.analyzer.stopSet() }
         activeSet = null
-        onDone(mapOf("total_reps" to 0, "correct_reps" to 0), null, null)
+        onDone(mapOf("total_repetitions" to 0, "correct_repetitions" to 0), null, null)
     }
 
     fun releaseCamera() {

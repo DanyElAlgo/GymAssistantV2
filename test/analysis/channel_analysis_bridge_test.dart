@@ -100,6 +100,25 @@ void main() {
     expect(calls, ['startCamera', 'releaseCamera']);
   });
 
+  test('startSet sends the exercise, silent mode and rules version, and stopSet returns the repetition counts',
+      () async {
+    final calls = <MethodCall>[];
+    answer((call) async {
+      calls.add(call);
+      return call.method == 'stopSet' ? {'total_repetitions': 8, 'correct_repetitions': 6} : null;
+    });
+    final bridge = ChannelAnalysisBridge();
+
+    await bridge.startSet(exercise: Exercise.latPulldown, silentMode: false, rulesVersion: '0.1.0');
+    final summary = await bridge.stopSet();
+
+    expect(calls.first.method, 'startSet');
+    expect(calls.first.arguments, {'exercise': 'LAT_PULLDOWN', 'silentMode': false, 'rulesVersion': '0.1.0'});
+    expect(calls.last.method, 'stopSet');
+    expect(summary.totalRepetitions, 8);
+    expect(summary.correctRepetitions, 6);
+  });
+
   test('capabilities report the model variant, the analysis resolution and the measured fps', () async {
     answer((call) async => {'model_variant': 'FULL', 'analysis_width': 480, 'analysis_height': 640, 'fps': 21.0});
 

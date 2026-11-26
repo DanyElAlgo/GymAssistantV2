@@ -38,7 +38,7 @@ class ChannelAnalysisBridge implements AnalysisBridge {
   @override
   Future<SetSummary> stopSet() async {
     final summary = await _invoke<Map<Object?, Object?>>('stopSet');
-    return SetSummary(totalRepetitions: summary!['total_reps']! as int, correctRepetitions: summary['correct_reps']! as int);
+    return SetSummary(totalRepetitions: summary!['total_repetitions']! as int, correctRepetitions: summary['correct_repetitions']! as int);
   }
 
   @override
